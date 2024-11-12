@@ -1,15 +1,20 @@
 package model
 
-import "gorm.io/gorm"
+import (
+	"regexp"
+
+	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
+)
 
 type User struct {
-	gorm.Model `json:"-"`
-	Username   string `gorm:"column:username;unique;not null"`
-	Password   string `gorm:"column:password;not null"`
-	Roles      Roles  `gorm:"many2many:user_role"`
-	Device     *Device
-	Statuses   Statuses
-	RoleIds    []uint `gorm:"-"`
+	gorm.Model
+	Username string `gorm:"column:username;unique;not null"`
+	Password string `gorm:"column:password;not null"`
+	Roles    Roles  `gorm:"many2many:user_role"`
+	Device   *Device
+	Statuses Statuses
+	RoleIds  []uint `gorm:"-"`
 }
 
 type UserCreation struct {
@@ -24,6 +29,7 @@ type UserUpdate struct {
 }
 
 type UserResponse struct {
+	gorm.Model
 	Username string        `json:"username,omitempty"`
 	Password string        `json:"password,omitempty"`
 	Roles    RoleResponses `json:"roles,omitempty"`
@@ -44,7 +50,7 @@ func (p UserCreation) AsModel() *User {
 }
 
 func (p User) AsResponse() *UserResponse {
-	return &UserResponse{Username: p.Username, Password: p.Password, Roles: p.Roles.AsCollectionResponse()}
+	return &UserResponse{Model: p.Model, Username: p.Username, Password: p.Password, Roles: p.Roles.AsCollectionResponse()}
 }
 
 func (p Users) AsCollectionResponse() UserResponses {
@@ -54,4 +60,20 @@ func (p Users) AsCollectionResponse() UserResponses {
 		result = append(result, *response)
 	}
 	return result
+}
+
+func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
+	encryptPassword, _ := bcrypt.GenerateFromPassword([]byte(u.Password), 10)
+	u.Password = string(encryptPassword)
+	return nil
+}
+
+func (u *User) BeforeUpdate(tx *gorm.DB) (err error) {
+	bcryptPattern := "^$2[ayb]$.{56}$"
+	isEncryptPassword, _ := regexp.MatchString(bcryptPattern, u.Password)
+	if !isEncryptPassword {
+		encryptPassword, _ := bcrypt.GenerateFromPassword([]byte(u.Password), 10)
+		u.Password = string(encryptPassword)
+	}
+	return nil
 }

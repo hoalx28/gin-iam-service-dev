@@ -3,10 +3,10 @@ package model
 import "gorm.io/gorm"
 
 type Status struct {
-	gorm.Model `json:"-"`
-	Content    string `gorm:"column:content;unique;not null"`
-	UserID     uint
-	User       *User
+	gorm.Model
+	Content string `gorm:"column:content;unique;not null"`
+	UserID  uint
+	User    *User
 }
 
 type StatusCreation struct {
@@ -19,6 +19,7 @@ type StatusUpdate struct {
 }
 
 type StatusResponse struct {
+	gorm.Model
 	Content string       `json:"content,omitempty"`
 	User    UserResponse `json:"user,omitempty"`
 }
@@ -38,7 +39,7 @@ func (p StatusCreation) AsModel() *Status {
 }
 
 func (p Status) AsResponse() *StatusResponse {
-	return &StatusResponse{Content: p.Content, User: *p.User.AsResponse()}
+	return &StatusResponse{Model: p.Model, Content: p.Content, User: *p.User.AsResponse()}
 }
 
 func (p Statuses) AsCollectionResponse() StatusResponses {

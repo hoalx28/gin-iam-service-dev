@@ -3,7 +3,7 @@ package model
 import "gorm.io/gorm"
 
 type Privilege struct {
-	gorm.Model  `json:"-"`
+	gorm.Model
 	Name        string `gorm:"column:name;unique;not null"`
 	Description string `gorm:"column:description;not null"`
 	Roles       Roles  `gorm:"many2many:role_privilege;"`
@@ -20,6 +20,7 @@ type PrivilegeUpdate struct {
 }
 
 type PrivilegeResponse struct {
+	gorm.Model
 	Name        string `json:"name,omitempty"`
 	Description string `json:"description,omitempty"`
 }
@@ -39,7 +40,7 @@ func (p PrivilegeCreation) AsModel() *Privilege {
 }
 
 func (p Privilege) AsResponse() *PrivilegeResponse {
-	return &PrivilegeResponse{Name: p.Name, Description: p.Description}
+	return &PrivilegeResponse{Model: p.Model, Name: p.Name, Description: p.Description}
 }
 
 func (p Privileges) AsCollectionResponse() PrivilegeResponses {

@@ -40,6 +40,15 @@ func (b gormUserBusiness) FindByIdBusiness(id uint) (*model.UserResponse, except
 	return response, nil
 }
 
+func (b gormUserBusiness) FindByUsernameBusiness(username string) (*model.UserResponse, exception.ServiceException) {
+	model, queriedErr := b.storage.FindByUsername(username)
+	if queriedErr != nil {
+		return nil, queriedErr
+	}
+	response := model.AsResponse()
+	return response, nil
+}
+
 func (b gormUserBusiness) FindAllByIdBusiness(ids []uint) (*model.UserResponses, exception.ServiceException) {
 	models, queriedErr := b.storage.FindAllById(ids)
 	if queriedErr != nil {

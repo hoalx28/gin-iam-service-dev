@@ -4,11 +4,11 @@ import "gorm.io/gorm"
 
 // ! One To One not working right
 type Device struct {
-	gorm.Model `json:"-"`
-	IpAddress  string `gorm:"column:ip_address;unique;not null"`
-	UserAgent  string `gorm:"column:user_agent;not null"`
-	UserID     uint
-	User       *User
+	gorm.Model
+	IpAddress string `gorm:"column:ip_address;unique;not null"`
+	UserAgent string `gorm:"column:user_agent;not null"`
+	UserID    uint
+	User      *User
 }
 
 type DeviceCreation struct {
@@ -23,6 +23,7 @@ type DeviceUpdate struct {
 }
 
 type DeviceResponse struct {
+	gorm.Model
 	IpAddress string `json:"ipAddress,omitempty"`
 	UserAgent string `json:"userAgent,omitempty"`
 }
@@ -42,7 +43,7 @@ func (p DeviceCreation) AsModel() *Device {
 }
 
 func (p Device) AsResponse() *DeviceResponse {
-	return &DeviceResponse{IpAddress: p.IpAddress, UserAgent: p.UserAgent}
+	return &DeviceResponse{Model: p.Model, IpAddress: p.IpAddress, UserAgent: p.UserAgent}
 }
 
 func (p Devices) AsCollectionResponse() DeviceResponses {

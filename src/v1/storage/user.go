@@ -9,6 +9,7 @@ type UserStorage interface {
 	ExistByUsername(username string) bool
 	Save(model *model.User) (*model.User, exception.ServiceException)
 	FindById(id uint) (*model.User, exception.ServiceException)
+	FindByUsername(username string) (*model.User, exception.ServiceException)
 	FindAllById(ids []uint) (*model.Users, exception.ServiceException)
 	FindAll(page *Page) (*model.Users, *Paging, exception.ServiceException)
 	FindAllBy(username string, page *Page) (*model.Users, *Paging, exception.ServiceException)

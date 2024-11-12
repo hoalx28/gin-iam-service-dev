@@ -41,7 +41,7 @@ func (t privilegeTransport) FindById(appCtx config.AppContext) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		id, parseErr := strconv.Atoi(ctx.Param("id"))
 		if parseErr != nil {
-			t.util.DoParsePathErrorResponse(ctx, "id")
+			t.util.DoGetPathErrorResponse(ctx, "id")
 			return
 		}
 		queried, queriedErr := t.business.FindByIdBusiness(uint(id))
@@ -107,7 +107,7 @@ func (t privilegeTransport) Update(appCtx config.AppContext) gin.HandlerFunc {
 		var update model.PrivilegeUpdate
 		id, parseErr := strconv.Atoi(ctx.Param("id"))
 		if parseErr != nil {
-			t.util.DoParsePathErrorResponse(ctx, "id")
+			t.util.DoGetPathErrorResponse(ctx, "id")
 			return
 		}
 		if parseErr := ctx.ShouldBind(&update); parseErr != nil {
@@ -127,7 +127,7 @@ func (t privilegeTransport) Delete(appCtx config.AppContext) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		id, parseErr := strconv.Atoi(ctx.Param("id"))
 		if parseErr != nil {
-			t.util.DoParsePathErrorResponse(ctx, "id")
+			t.util.DoGetPathErrorResponse(ctx, "id")
 			return
 		}
 		old, deleteErr := t.business.DeleteBusiness(uint(id))

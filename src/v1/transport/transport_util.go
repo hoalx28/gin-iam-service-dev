@@ -20,9 +20,14 @@ type TransportUtil interface {
 	DoSuccessPagingResponse(ctx *gin.Context, c constant.Success, payload interface{}, page storage.Paging)
 	DoErrorResponse(ctx *gin.Context, e exception.ServiceException)
 	DoParseBodyErrorResponse(ctx *gin.Context, e error)
-	DoParsePathErrorResponse(ctx *gin.Context, name string)
 	DoParseQueryErrorResponse(ctx *gin.Context, e error)
+	DoGetPathErrorResponse(ctx *gin.Context, name string)
+	DoGetHeaderErrorResponse(ctx *gin.Context, name string)
 }
+
+const (
+	AUTHORIZATION = "Authorization"
+)
 
 func NewTransportUtil() transportUtil {
 	return transportUtil{}
@@ -71,9 +76,16 @@ func (u transportUtil) DoParseQueryErrorResponse(ctx *gin.Context, e error) {
 	ctx.JSON(failed.StatusCode, response)
 }
 
-func (u transportUtil) DoParsePathErrorResponse(ctx *gin.Context, paramName string) {
+func (u transportUtil) DoGetPathErrorResponse(ctx *gin.Context, paramName string) {
 	failed := constant.RequestParamsNotReadableF
-	message := paramName + " is missing in path variable."
+	message := strings.ToLower(paramName) + " is missing in path variable."
+	response := response.NewResponse[interface{}](time.Now().Unix(), failed.Code, failed.StatusCode, message, nil)
+	ctx.JSON(failed.StatusCode, response)
+}
+
+func (u transportUtil) DoGetHeaderErrorResponse(ctx *gin.Context, headerName string) {
+	failed := constant.RequestHeaderNotReadableF
+	message := strings.ToLower(headerName) + " is missing in payload header."
 	response := response.NewResponse[interface{}](time.Now().Unix(), failed.Code, failed.StatusCode, message, nil)
 	ctx.JSON(failed.StatusCode, response)
 }

@@ -9,6 +9,7 @@ import (
 type UserBusiness interface {
 	SaveBusiness(creation *model.UserCreation) (*model.UserResponse, exception.ServiceException)
 	FindByIdBusiness(id uint) (*model.UserResponse, exception.ServiceException)
+	FindByUsernameBusiness(username string) (*model.UserResponse, exception.ServiceException)
 	FindAllByIdBusiness(ids []uint) (*model.UserResponses, exception.ServiceException)
 	FindAllBusiness(page *storage.Page) (*model.UserResponses, *storage.Paging, exception.ServiceException)
 	FindAllByBusiness(name string, page *storage.Page) (*model.UserResponses, *storage.Paging, exception.ServiceException)

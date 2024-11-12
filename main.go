@@ -22,7 +22,7 @@ func (rest restServer) dbConfig(dns string) *gorm.DB {
 	gormClt := client.NewGormClient()
 	gormClt = gormClt.Connect(dns, &gorm.Config{})
 	db := gormClt.GetDB()
-	models := []interface{}{&model.Privilege{}, &model.Role{}, &model.User{}, &model.Device{}, &model.Status{}}
+	models := []interface{}{&model.Privilege{}, &model.Role{}, &model.User{}, &model.Device{}, &model.Status{}, &model.BadCredential{}}
 	db.AutoMigrate(models...)
 	return db
 }
@@ -33,11 +33,14 @@ func (rest restServer) routeConfig(appCtx config.AppContext) {
 	userRoute := route.NewUserRoute()
 	deviceRoute := route.NewDeviceRoute()
 	statusRoute := route.NewStatusRoute()
+	authRoute := route.NewAuthRoute()
+
 	privilegeRoute.Config(appCtx)
 	roleRoute.Config(appCtx)
 	userRoute.Config(appCtx)
 	deviceRoute.Config(appCtx)
 	statusRoute.Config(appCtx)
+	authRoute.Config(appCtx)
 }
 
 func (rest restServer) corsConfig(appCtx config.AppContext) {

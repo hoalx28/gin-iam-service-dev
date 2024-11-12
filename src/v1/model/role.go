@@ -3,7 +3,7 @@ package model
 import "gorm.io/gorm"
 
 type Role struct {
-	gorm.Model   `json:"-"`
+	gorm.Model
 	Name         string     `gorm:"column:name;unique;not null"`
 	Description  string     `gorm:"column:description;not null"`
 	Privileges   Privileges `gorm:"many2many:role_privilege"`
@@ -23,6 +23,7 @@ type RoleUpdate struct {
 }
 
 type RoleResponse struct {
+	gorm.Model
 	Name        string             `json:"name,omitempty"`
 	Description string             `json:"description,omitempty"`
 	Privileges  PrivilegeResponses `json:"privileges,omitempty"`
@@ -43,7 +44,7 @@ func (p RoleCreation) AsModel() *Role {
 }
 
 func (p Role) AsResponse() *RoleResponse {
-	return &RoleResponse{Name: p.Name, Description: p.Description, Privileges: p.Privileges.AsCollectionResponse()}
+	return &RoleResponse{Model: p.Model, Name: p.Name, Description: p.Description, Privileges: p.Privileges.AsCollectionResponse()}
 }
 
 func (p Roles) AsCollectionResponse() RoleResponses {

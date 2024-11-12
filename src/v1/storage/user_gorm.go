@@ -49,6 +49,18 @@ func (s gormUserStorage) FindById(id uint) (*model.User, exception.ServiceExcept
 	return model, nil
 }
 
+func (s gormUserStorage) FindByUsername(username string) (*model.User, exception.ServiceException) {
+	model := &model.User{}
+	err := s.db.Preload("Roles.Privileges").Where("username = ?", username).First(model).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, exception.NewServiceException(err, constant.FindByNoContentF)
+		}
+		return nil, exception.NewServiceException(err, constant.FindByF)
+	}
+	return model, nil
+}
+
 func (s gormUserStorage) FindAllById(ids []uint) (*model.Users, exception.ServiceException) {
 	models := &model.Users{}
 	err := s.db.Preload("Roles").Where("id IN ?", ids).Find(models).Error
