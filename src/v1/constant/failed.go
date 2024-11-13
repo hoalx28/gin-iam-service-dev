@@ -15,6 +15,7 @@ func newFailed(code int32, message string, statusCode int) Failed {
 var (
 	EnvConfigF = newFailed(001, "can not load .env file, make sure file already existed.", http.StatusInternalServerError)
 	DBConfigF  = newFailed(002, "can not established connection to database via gorm.", http.StatusInternalServerError)
+	SecConfigF = newFailed(003, "can not load policy configuration.", http.StatusInternalServerError)
 
 	RequestBodyNotReadableF   = newFailed(100, "missing or request body is not readable.", http.StatusBadRequest)
 	RequestHeaderNotReadableF = newFailed(101, "missing or request header is not readable.", http.StatusBadRequest)
@@ -50,7 +51,9 @@ var (
 	VerifiedIdentityF            = newFailed(221, "can not verify identity: try again later.", http.StatusUnauthorized)
 	RetrieveProfileF             = newFailed(222, "can not retrieve profile: try again later.", http.StatusUnauthorized)
 	SignOutF                     = newFailed(223, "can not sign out: token not be recalled.", http.StatusInternalServerError)
-	EnsureTokenNotBadCredentialF = newFailed(224, "can not ensure token is not recall.", http.StatusInternalServerError)
-	TokenBlockedF                = newFailed(225, "token has been recall: can not use this any more", http.StatusInternalServerError)
-	RefreshTokenF                = newFailed(226, "can not refresh token: try again later.", http.StatusInternalServerError)
+	EnsureTokenNotBadCredentialF = newFailed(224, "can not ensure token is not recall.", http.StatusUnauthorized)
+	TokenBlockedF                = newFailed(225, "token has been recall: can not use this any more", http.StatusUnauthorized)
+	JwtTokenNotSuitableF         = newFailed(226, "access token and refresh token are not suitable.", http.StatusUnauthorized)
+	RecallJwtTokenF              = newFailed(227, "refresh token may not complete: token not be recalled.", http.StatusUnauthorized)
+	RefreshTokenF                = newFailed(228, "can not refresh token: try again later.", http.StatusInternalServerError)
 )

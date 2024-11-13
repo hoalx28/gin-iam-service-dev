@@ -26,7 +26,8 @@ type TransportUtil interface {
 }
 
 const (
-	AUTHORIZATION = "Authorization"
+	AUTHORIZATION   = "Authorization"
+	X_REFRESH_TOKEN = "X-REFRESH-TOKEN"
 )
 
 func NewTransportUtil() transportUtil {

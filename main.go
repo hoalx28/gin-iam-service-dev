@@ -7,6 +7,7 @@ import (
 	"iam/src/v1/route"
 	"os"
 
+	"github.com/casbin/casbin/v2"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -14,17 +15,20 @@ import (
 
 type restServer struct{}
 
-func (rest restServer) envConfig(appCfg config.AppConfig) {
-	appCfg.EnvConfig()
+func (rest restServer) secConfig() *casbin.Enforcer {
+	return config.NewSecConfig().Enforcer
 }
 
 func (rest restServer) dbConfig(dns string) *gorm.DB {
-	gormClt := client.NewGormClient()
-	gormClt = gormClt.Connect(dns, &gorm.Config{})
+	gormClt := client.NewGormClient().Connect(dns, &gorm.Config{})
 	db := gormClt.GetDB()
 	models := []interface{}{&model.Privilege{}, &model.Role{}, &model.User{}, &model.Device{}, &model.Status{}, &model.BadCredential{}}
 	db.AutoMigrate(models...)
 	return db
+}
+
+func (rest restServer) envConfig(appCfg config.AppConfig) {
+	appCfg.EnvConfig()
 }
 
 func (rest restServer) routeConfig(appCtx config.AppContext) {
@@ -56,7 +60,8 @@ func main() {
 	port := os.Getenv("PORT")
 	db := restService.dbConfig(dns)
 	engine := gin.Default()
-	appCtx := config.NewAppContext(db, engine)
+	enforcer := restService.secConfig()
+	appCtx := config.NewAppContext(db, engine, enforcer)
 	restService.routeConfig(appCtx)
 	restService.corsConfig(appCtx)
 	engine.Run(":" + port)

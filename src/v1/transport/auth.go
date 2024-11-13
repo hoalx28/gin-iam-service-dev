@@ -103,3 +103,26 @@ func (t authTransport) SignOut(appCtx config.AppContext) gin.HandlerFunc {
 		t.util.DoSuccessResponse(ctx, constant.SignOut, tokenId)
 	}
 }
+
+func (t authTransport) Refresh(appCtx config.AppContext) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		authorizationHeader := ctx.GetHeader(AUTHORIZATION)
+		if lo.IsEmpty(authorizationHeader) {
+			t.util.DoGetHeaderErrorResponse(ctx, AUTHORIZATION)
+			return
+		}
+		refreshTokenHeader := ctx.GetHeader(X_REFRESH_TOKEN)
+		if lo.IsEmpty(refreshTokenHeader) {
+			t.util.DoGetHeaderErrorResponse(ctx, X_REFRESH_TOKEN)
+			return
+		}
+		accessToken := strings.Replace(authorizationHeader, "Bearer ", "", 1)
+		refreshToken := strings.Replace(refreshTokenHeader, "Bearer ", "", 1)
+		tokenId, refreshErr := t.business.Refresh(accessToken, refreshToken)
+		if refreshErr != nil {
+			t.util.DoErrorResponse(ctx, refreshErr)
+			return
+		}
+		t.util.DoSuccessResponse(ctx, constant.RefreshToken, tokenId)
+	}
+}

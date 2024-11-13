@@ -23,6 +23,7 @@ func (r authRoute) Config(appCtx config.AppContext) {
 			users.POST("/identity", transport.Identity(appCtx))
 			users.GET("/me", transport.Me(appCtx))
 			users.POST("/sign-out", transport.SignOut(appCtx))
+			users.POST("/refresh", transport.Refresh(appCtx))
 		}
 	}
 }

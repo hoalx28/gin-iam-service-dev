@@ -1,7 +1,6 @@
 package business
 
 import (
-	"fmt"
 	"iam/src/v1/config"
 	"iam/src/v1/constant"
 	"iam/src/v1/exception"
@@ -101,7 +100,6 @@ func (b gormAuthBusiness) Identity(accessToken string) (*token.AuthClaims, excep
 
 func (b gormAuthBusiness) Me(accessToken string) (*dto.RegisterResponse, exception.ServiceException) {
 	claims, verifiedErr := b.Identity(accessToken)
-	fmt.Println(verifiedErr)
 	if verifiedErr != nil {
 		return nil, verifiedErr
 	}
@@ -127,6 +125,36 @@ func (b gormAuthBusiness) SignOut(accessToken string) (*uint, exception.ServiceE
 	return &saved.ID, nil
 }
 
-func (b gormAuthBusiness) Refresh(accessToken string, refreshToken string) exception.ServiceException {
-	panic("not implemented") // TODO: Implement
+func (b gormAuthBusiness) Refresh(accessToken string, refreshToken string) (*dto.CredentialResponse, exception.ServiceException) {
+	refreshTokenSecret := os.Getenv("REFRESH_TOKEN_SECRET")
+	accessClaims, accessVerifiedErr := b.Identity(accessToken)
+	if accessVerifiedErr != nil {
+		return nil, accessVerifiedErr
+	}
+	refreshClaims, refreshVerifiedErr := b.jwtAuthProvider.Verify(refreshToken, refreshTokenSecret)
+	if refreshVerifiedErr != nil {
+		return nil, refreshVerifiedErr
+	}
+	accessTokenReferId := accessClaims.Payload.ReferId
+	refreshTokenId := refreshClaims.ID
+	if accessTokenReferId != refreshTokenId {
+		return nil, exception.NewServiceException(nil, constant.JwtTokenNotSuitableF)
+	}
+	creation, parseErr := b.asBadCredentialCacheCreation(accessToken)
+	if parseErr != nil {
+		return nil, parseErr
+	}
+	_, savedErr := b.badCredentialBusiness.SaveBusiness(creation)
+	if savedErr != nil {
+		return nil, exception.NewServiceException(savedErr, constant.RecallJwtTokenF)
+	}
+	user, queriedErr := b.userBusiness.FindByUsernameBusiness(accessClaims.Subject)
+	if queriedErr != nil {
+		return nil, exception.NewServiceException(queriedErr, constant.RefreshTokenF)
+	}
+	credential, newCredentialErr := b.newCredentials(user)
+	if newCredentialErr != nil {
+		return nil, newCredentialErr
+	}
+	return credential, nil
 }

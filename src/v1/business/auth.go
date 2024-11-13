@@ -12,5 +12,5 @@ type AuthBusiness interface {
 	Identity(accessToken string) (*token.AuthClaims, exception.ServiceException)
 	Me(accessToken string) (*dto.RegisterResponse, exception.ServiceException)
 	SignOut(accessToken string) (*uint, exception.ServiceException)
-	Refresh(accessToken string, refreshToken string) exception.ServiceException
+	Refresh(accessToken string, refreshToken string) (*dto.CredentialResponse, exception.ServiceException)
 }
