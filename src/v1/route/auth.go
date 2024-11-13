@@ -5,14 +5,14 @@ import (
 	"iam/src/v1/transport"
 )
 
-type authRoute struct{}
+type authR struct{}
 
-func NewAuthRoute() *authRoute {
-	return &authRoute{}
+func NewAuthR() *authR {
+	return &authR{}
 }
 
-func (r authRoute) Config(appCtx config.AppContext) {
-	transport := transport.NewAuthTransport(appCtx)
+func (r authR) Config(appCtx config.AppContext) {
+	transport := transport.NewAuthT(appCtx)
 	engine := appCtx.GetGinEngine()
 	v1 := engine.Group("/api/v1")
 	{

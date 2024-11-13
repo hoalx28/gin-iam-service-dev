@@ -3,16 +3,18 @@ package constant
 import "net/http"
 
 type Failed struct {
-	Code       int32
+	Code       int
 	Message    string
 	StatusCode int
 }
 
-func newFailed(code int32, message string, statusCode int) Failed {
+func newFailed(code int, message string, statusCode int) Failed {
 	return Failed{Code: code, Message: message, StatusCode: statusCode}
 }
 
 var (
+	UncategorizedF = newFailed(000, "uncategorized exception, service can not response.", http.StatusInternalServerError)
+
 	EnvConfigF = newFailed(001, "can not load .env file, make sure file already existed.", http.StatusInternalServerError)
 	DBConfigF  = newFailed(002, "can not established connection to database via gorm.", http.StatusInternalServerError)
 	SecConfigF = newFailed(003, "can not load policy configuration.", http.StatusInternalServerError)
@@ -56,4 +58,7 @@ var (
 	JwtTokenNotSuitableF         = newFailed(226, "access token and refresh token are not suitable.", http.StatusUnauthorized)
 	RecallJwtTokenF              = newFailed(227, "refresh token may not complete: token not be recalled.", http.StatusUnauthorized)
 	RefreshTokenF                = newFailed(228, "can not refresh token: try again later.", http.StatusInternalServerError)
+
+	UnauthorizedF = newFailed(229, "ill legal token: token has been edited, expired or not publish by us.", http.StatusUnauthorized)
+	ForbiddenF    = newFailed(230, "forbidden: do not has right authority, do not f*ck with cat.", http.StatusForbidden)
 )

@@ -1,46 +1,48 @@
 package business
 
 import (
+	"iam/src/v1/abstraction"
 	"iam/src/v1/config"
 	"iam/src/v1/constant"
+	"iam/src/v1/domain"
+	"iam/src/v1/domain/dto"
 	"iam/src/v1/exception"
-	"iam/src/v1/model"
 	"iam/src/v1/storage"
 )
 
-type gormStatusBusiness struct {
-	storage storage.StatusStorage
+type gormStatusB struct {
+	storage abstraction.StatusS
 }
 
-func NewGormStatusBusiness(appCtx config.AppContext) StatusBusiness {
-	storage := storage.NewGormStatusStorage(appCtx)
-	return gormStatusBusiness{storage: storage}
+func NewGormStatusB(appCtx config.AppContext) abstraction.StatusB {
+	storage := storage.NewGormStatusS(appCtx)
+	return gormStatusB{storage: storage}
 }
 
-func (b gormStatusBusiness) SaveBusiness(creation *model.StatusCreation) (*model.StatusResponse, exception.ServiceException) {
+func (b gormStatusB) SaveB(creation *domain.StatusCreation) (*domain.StatusResponse, exception.ServiceException) {
 	isExisted := b.storage.ExistByContent(*creation.Content)
 	if isExisted {
 		return nil, exception.NewServiceException(nil, constant.AlreadyExistedF)
 	}
 	model := creation.AsModel()
-	saved, saveErr := b.storage.Save(model)
+	saved, saveErr := b.storage.Save(&model)
 	if saveErr != nil {
 		return nil, saveErr
 	}
 	response := saved.AsResponse()
-	return response, nil
+	return &response, nil
 }
 
-func (b gormStatusBusiness) FindByIdBusiness(id uint) (*model.StatusResponse, exception.ServiceException) {
+func (b gormStatusB) FindByIdB(id uint) (*domain.StatusResponse, exception.ServiceException) {
 	model, queriedErr := b.storage.FindById(id)
 	if queriedErr != nil {
 		return nil, queriedErr
 	}
 	response := model.AsResponse()
-	return response, nil
+	return &response, nil
 }
 
-func (b gormStatusBusiness) FindAllByIdBusiness(ids []uint) (*model.StatusResponses, exception.ServiceException) {
+func (b gormStatusB) FindAllByIdB(ids []uint) (*domain.StatusResponses, exception.ServiceException) {
 	models, queriedErr := b.storage.FindAllById(ids)
 	if queriedErr != nil {
 		return nil, queriedErr
@@ -49,7 +51,7 @@ func (b gormStatusBusiness) FindAllByIdBusiness(ids []uint) (*model.StatusRespon
 	return &responses, nil
 }
 
-func (b gormStatusBusiness) FindAllBusiness(page *storage.Page) (*model.StatusResponses, *storage.Paging, exception.ServiceException) {
+func (b gormStatusB) FindAllB(page dto.Page) (*domain.StatusResponses, *dto.Paging, exception.ServiceException) {
 	models, paging, queriedErr := b.storage.FindAll(page)
 	if queriedErr != nil {
 		return nil, nil, queriedErr
@@ -58,7 +60,7 @@ func (b gormStatusBusiness) FindAllBusiness(page *storage.Page) (*model.StatusRe
 	return &responses, paging, nil
 }
 
-func (b gormStatusBusiness) FindAllByBusiness(content string, page *storage.Page) (*model.StatusResponses, *storage.Paging, exception.ServiceException) {
+func (b gormStatusB) FindAllByB(content string, page dto.Page) (*domain.StatusResponses, *dto.Paging, exception.ServiceException) {
 	models, paging, queriedErr := b.storage.FindAllBy(content, page)
 	if queriedErr != nil {
 		return nil, nil, queriedErr
@@ -67,7 +69,7 @@ func (b gormStatusBusiness) FindAllByBusiness(content string, page *storage.Page
 	return &responses, paging, nil
 }
 
-func (b gormStatusBusiness) FindAllArchivedBusiness(page *storage.Page) (*model.StatusResponses, *storage.Paging, exception.ServiceException) {
+func (b gormStatusB) FindAllArchivedB(page dto.Page) (*domain.StatusResponses, *dto.Paging, exception.ServiceException) {
 	models, paging, queriedErr := b.storage.FindAllArchived(page)
 	if queriedErr != nil {
 		return nil, nil, queriedErr
@@ -76,20 +78,20 @@ func (b gormStatusBusiness) FindAllArchivedBusiness(page *storage.Page) (*model.
 	return &responses, paging, nil
 }
 
-func (b gormStatusBusiness) UpdateBusiness(id uint, update *model.StatusUpdate) (*model.StatusResponse, exception.ServiceException) {
+func (b gormStatusB) UpdateB(id uint, update *domain.StatusUpdate) (*domain.StatusResponse, exception.ServiceException) {
 	old, updateErr := b.storage.Update(id, update)
 	if updateErr != nil {
 		return nil, updateErr
 	}
 	response := old.AsResponse()
-	return response, nil
+	return &response, nil
 }
 
-func (b gormStatusBusiness) DeleteBusiness(id uint) (*model.StatusResponse, exception.ServiceException) {
+func (b gormStatusB) DeleteB(id uint) (*domain.StatusResponse, exception.ServiceException) {
 	old, deleteErr := b.storage.Delete(id)
 	if deleteErr != nil {
 		return nil, deleteErr
 	}
 	response := old.AsResponse()
-	return response, nil
+	return &response, nil
 }

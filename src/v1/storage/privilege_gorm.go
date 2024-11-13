@@ -1,87 +1,89 @@
 package storage
 
 import (
+	"iam/src/v1/abstraction"
 	"iam/src/v1/config"
 	"iam/src/v1/constant"
+	"iam/src/v1/domain"
+	"iam/src/v1/domain/dto"
 	"iam/src/v1/exception"
-	"iam/src/v1/model"
 
 	"gorm.io/gorm"
 )
 
-type gormPrivilegeStorage struct {
+type gormPrivilegeS struct {
 	db *gorm.DB
 }
 
-func NewGormPrivilegeStorage(appCtx config.AppContext) PrivilegeStorage {
-	return gormPrivilegeStorage{db: appCtx.GetGormDB()}
+func NewGormPrivilegeS(appCtx config.AppContext) abstraction.PrivilegeS {
+	return gormPrivilegeS{db: appCtx.GetGormDB()}
 }
 
-func (s gormPrivilegeStorage) ExistByName(name string) bool {
-	err := s.db.Unscoped().Where("name = ?", name).First(&model.Privilege{}).Error
+func (s gormPrivilegeS) ExistByName(name string) bool {
+	err := s.db.Unscoped().Where("name = ?", name).First(&domain.Privilege{}).Error
 	return err != gorm.ErrRecordNotFound
 }
 
-func (s gormPrivilegeStorage) Save(model *model.Privilege) (*model.Privilege, exception.ServiceException) {
-	err := s.db.Create(model).Error
+func (s gormPrivilegeS) Save(domain *domain.Privilege) (*domain.Privilege, exception.ServiceException) {
+	err := s.db.Create(domain).Error
 	if err != nil {
 		return nil, exception.NewServiceException(err, constant.SaveF)
 	}
-	return model, nil
+	return domain, nil
 }
 
-func (s gormPrivilegeStorage) FindById(id uint) (*model.Privilege, exception.ServiceException) {
-	model := &model.Privilege{}
-	err := s.db.First(model, id).Error
+func (s gormPrivilegeS) FindById(id uint) (*domain.Privilege, exception.ServiceException) {
+	domain := &domain.Privilege{}
+	err := s.db.First(domain, id).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, exception.NewServiceException(err, constant.FindByIdNoContentF)
 		}
 		return nil, exception.NewServiceException(err, constant.FindByIdF)
 	}
-	return model, nil
+	return domain, nil
 }
 
-func (s gormPrivilegeStorage) FindAllById(ids []uint) (*model.Privileges, exception.ServiceException) {
-	models := &model.Privileges{}
-	err := s.db.Where("id IN ?", ids).Find(models).Error
+func (s gormPrivilegeS) FindAllById(ids []uint) (*domain.Privileges, exception.ServiceException) {
+	domains := &domain.Privileges{}
+	err := s.db.Where("id IN ?", ids).Find(domains).Error
 	if err != nil {
 		return nil, exception.NewServiceException(err, constant.FindAllByIdF)
 	}
-	return models, nil
+	return domains, nil
 }
 
-func (s gormPrivilegeStorage) FindAll(page *Page) (*model.Privileges, *Paging, exception.ServiceException) {
-	models := &model.Privileges{}
-	paging := &Paging{}
-	err := s.db.Scopes(PageScope(models, s.db, page, paging)).Find(models).Error
+func (s gormPrivilegeS) FindAll(page dto.Page) (*domain.Privileges, *dto.Paging, exception.ServiceException) {
+	domains := &domain.Privileges{}
+	paging := &dto.Paging{}
+	err := s.db.Scopes(PageScope(domains, s.db, page, paging)).Find(domains).Error
 	if err != nil {
 		return nil, nil, exception.NewServiceException(err, constant.FindAllByF)
 	}
-	return models, paging, nil
+	return domains, paging, nil
 }
 
-func (s gormPrivilegeStorage) FindAllBy(name string, page *Page) (*model.Privileges, *Paging, exception.ServiceException) {
-	models := &model.Privileges{}
-	paging := &Paging{}
-	err := s.db.Scopes(PageNameFilterScope(models, name, s.db, page, paging)).Where("name LIKE ?", "%"+name+"%").Find(models).Error
+func (s gormPrivilegeS) FindAllBy(name string, page dto.Page) (*domain.Privileges, *dto.Paging, exception.ServiceException) {
+	domains := &domain.Privileges{}
+	paging := &dto.Paging{}
+	err := s.db.Scopes(ConditionPageScope(domains, map[string]string{"Name": name}, s.db, page, paging)).Where("name LIKE ?", "%"+name+"%").Find(domains).Error
 	if err != nil {
 		return nil, nil, exception.NewServiceException(err, constant.FindAllByF)
 	}
-	return models, paging, nil
+	return domains, paging, nil
 }
 
-func (s gormPrivilegeStorage) FindAllArchived(page *Page) (*model.Privileges, *Paging, exception.ServiceException) {
-	models := &model.Privileges{}
-	paging := &Paging{}
-	err := s.db.Unscoped().Where("deleted_at IS NOT NULL").Scopes(PageArchivedScope(models, s.db, page, paging)).Find(models).Error
+func (s gormPrivilegeS) FindAllArchived(page dto.Page) (*domain.Privileges, *dto.Paging, exception.ServiceException) {
+	domains := &domain.Privileges{}
+	paging := &dto.Paging{}
+	err := s.db.Unscoped().Where("deleted_at IS NOT NULL").Scopes(ArchivedPageScope(domains, s.db, page, paging)).Find(domains).Error
 	if err != nil {
 		return nil, nil, exception.NewServiceException(err, constant.FindAllArchivedF)
 	}
-	return models, paging, nil
+	return domains, paging, nil
 }
 
-func (s gormPrivilegeStorage) Update(id uint, update *model.PrivilegeUpdate) (*model.Privilege, exception.ServiceException) {
+func (s gormPrivilegeS) Update(id uint, update *domain.PrivilegeUpdate) (*domain.Privilege, exception.ServiceException) {
 	old, queriedErr := s.FindById(id)
 	if queriedErr != nil {
 		if queriedErr.GetFailed() == constant.FindByIdNoContentF {
@@ -96,7 +98,7 @@ func (s gormPrivilegeStorage) Update(id uint, update *model.PrivilegeUpdate) (*m
 	return old, nil
 }
 
-func (s gormPrivilegeStorage) Delete(id uint) (*model.Privilege, exception.ServiceException) {
+func (s gormPrivilegeS) Delete(id uint) (*domain.Privilege, exception.ServiceException) {
 	old, queriedErr := s.FindById(id)
 	if queriedErr != nil {
 		if queriedErr.GetFailed() == constant.FindByIdNoContentF {
@@ -104,7 +106,7 @@ func (s gormPrivilegeStorage) Delete(id uint) (*model.Privilege, exception.Servi
 		}
 		return nil, queriedErr
 	}
-	err := s.db.Where("id = ?", id).Delete(&model.Privilege{}).Error
+	err := s.db.Where("id = ?", id).Delete(&domain.Privilege{}).Error
 	if err != nil {
 		return nil, exception.NewServiceException(err, constant.DeleteF)
 	}

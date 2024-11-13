@@ -1,4 +1,4 @@
-package model
+package domain
 
 import (
 	"time"
@@ -35,19 +35,19 @@ func (BadCredentialCreation) TableName() string  { return BadCredential{}.TableN
 func (BadCredentialResponse) TableName() string  { return BadCredential{}.TableName() }
 func (BadCredentialResponses) TableName() string { return BadCredential{}.TableName() }
 
-func (p BadCredentialCreation) AsModel() *BadCredential {
-	return &BadCredential{Model: gorm.Model{}, AccessTokenId: *p.AccessTokenId, AccessTokenExpiredAt: *p.AccessTokenExpiredAt, UserId: *p.UserId}
+func (p BadCredentialCreation) AsModel() BadCredential {
+	return BadCredential{Model: gorm.Model{}, AccessTokenId: *p.AccessTokenId, AccessTokenExpiredAt: *p.AccessTokenExpiredAt, UserId: *p.UserId}
 }
 
-func (p BadCredential) AsResponse() *BadCredentialResponse {
-	return &BadCredentialResponse{Model: p.Model, AccessTokenId: p.AccessTokenId, AccessTokenExpiredAt: p.AccessTokenExpiredAt, UserId: p.ID}
+func (p BadCredential) AsResponse() BadCredentialResponse {
+	return BadCredentialResponse{Model: p.Model, AccessTokenId: p.AccessTokenId, AccessTokenExpiredAt: p.AccessTokenExpiredAt, UserId: p.ID}
 }
 
 func (p BadCredentials) AsCollectionResponse() BadCredentialResponses {
 	result := BadCredentialResponses{}
 	for _, model := range p {
 		response := model.AsResponse()
-		result = append(result, *response)
+		result = append(result, response)
 	}
 	return result
 }

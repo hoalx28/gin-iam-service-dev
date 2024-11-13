@@ -5,14 +5,14 @@ import (
 	"iam/src/v1/transport"
 )
 
-type privilegeRoute struct{}
+type privilegeR struct{}
 
-func NewPrivilegeRoute() *privilegeRoute {
-	return &privilegeRoute{}
+func NewPrivilegeR() privilegeR {
+	return privilegeR{}
 }
 
-func (r privilegeRoute) Config(appCtx config.AppContext) {
-	transport := transport.NewPrivilegeTransport(appCtx)
+func (r privilegeR) Config(appCtx config.AppContext) {
+	transport := transport.NewPrivilegeT(appCtx)
 	engine := appCtx.GetGinEngine()
 	v1 := engine.Group("/api/v1")
 	{

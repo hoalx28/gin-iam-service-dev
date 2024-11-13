@@ -1,4 +1,4 @@
-package model
+package domain
 
 import (
 	"regexp"
@@ -31,7 +31,7 @@ type UserUpdate struct {
 type UserResponse struct {
 	gorm.Model
 	Username string        `json:"username,omitempty"`
-	Password string        `json:"password,omitempty"`
+	Password string        `json:"-"`
 	Roles    RoleResponses `json:"roles,omitempty"`
 }
 
@@ -45,19 +45,19 @@ func (UserUpdate) TableName() string    { return User{}.TableName() }
 func (UserResponse) TableName() string  { return User{}.TableName() }
 func (UserResponses) TableName() string { return User{}.TableName() }
 
-func (p UserCreation) AsModel() *User {
-	return &User{Model: gorm.Model{}, Username: *p.Username, Password: *p.Password, RoleIds: p.RoleIds}
+func (p UserCreation) AsModel() User {
+	return User{Model: gorm.Model{}, Username: *p.Username, Password: *p.Password, RoleIds: p.RoleIds}
 }
 
-func (p User) AsResponse() *UserResponse {
-	return &UserResponse{Model: p.Model, Username: p.Username, Password: p.Password, Roles: p.Roles.AsCollectionResponse()}
+func (p User) AsResponse() UserResponse {
+	return UserResponse{Model: p.Model, Username: p.Username, Password: p.Password, Roles: p.Roles.AsCollectionResponse()}
 }
 
 func (p Users) AsCollectionResponse() UserResponses {
 	result := UserResponses{}
 	for _, model := range p {
 		response := model.AsResponse()
-		result = append(result, *response)
+		result = append(result, response)
 	}
 	return result
 }

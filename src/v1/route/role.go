@@ -5,14 +5,14 @@ import (
 	"iam/src/v1/transport"
 )
 
-type roleRoute struct{}
+type roleR struct{}
 
-func NewRoleRoute() *roleRoute {
-	return &roleRoute{}
+func NewRoleR() roleR {
+	return roleR{}
 }
 
-func (r roleRoute) Config(appCtx config.AppContext) {
-	transport := transport.NewRoleTransport(appCtx)
+func (r roleR) Config(appCtx config.AppContext) {
+	transport := transport.NewRoleT(appCtx)
 	engine := appCtx.GetGinEngine()
 	v1 := engine.Group("/api/v1")
 	{

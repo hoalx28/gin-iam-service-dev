@@ -1,46 +1,45 @@
 package business
 
 import (
+	"iam/src/v1/abstraction"
 	"iam/src/v1/config"
 	"iam/src/v1/constant"
+	"iam/src/v1/domain"
+	"iam/src/v1/domain/dto"
 	"iam/src/v1/exception"
-	"iam/src/v1/model"
-	"iam/src/v1/model/dto"
 	"iam/src/v1/token"
-	"os"
-	"strconv"
 	"time"
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
-type gormAuthBusiness struct {
-	userBusiness          UserBusiness
-	badCredentialBusiness BadCredentialBusiness
-	jwtAuthProvider       token.TokenAuthProvider[token.AuthClaims, model.UserResponse]
+type gormAuthB struct {
+	userB           abstraction.UserB
+	badCredentialB  abstraction.BadCredentialB
+	jwtAuthProvider abstraction.JwtAuthProvider[dto.AuthClaims, domain.UserResponse]
 }
 
-func NewGormAuthBusiness(appCtx config.AppContext) AuthBusiness {
-	userBusiness := NewGormUserBusiness(appCtx)
-	badCredentialBusiness := NewGormBadCredentialBusiness(appCtx)
+func NewGormAuthB(appCtx config.AppContext) abstraction.AuthB {
+	userB := NewGormUserB(appCtx)
+	badCredentialB := NewGormBadCredentialB(appCtx)
 	jwtAuthProvider := token.NewJWTAuthProvider(appCtx)
-	return gormAuthBusiness{userBusiness: userBusiness, jwtAuthProvider: jwtAuthProvider, badCredentialBusiness: badCredentialBusiness}
+	return gormAuthB{userB: userB, jwtAuthProvider: jwtAuthProvider, badCredentialB: badCredentialB}
 }
 
-func (b gormAuthBusiness) newCredentials(user *model.UserResponse) (*dto.CredentialResponse, exception.ServiceException) {
-	accessTokenSecret := os.Getenv("ACCESS_TOKEN_SECRET")
-	accessTokenTimeToLive, _ := strconv.Atoi(os.Getenv("ACCESS_TOKEN_TIME_TO_LIVE"))
-	refreshTokenSecret := os.Getenv("REFRESH_TOKEN_SECRET")
-	refreshTokenTimeToLive, _ := strconv.Atoi(os.Getenv("REFRESH_TOKEN_TIME_TO_LIVE"))
+func (b gormAuthB) newCredentials(user domain.UserResponse) (*dto.CredentialResponse, exception.ServiceException) {
 	accessTokenId := uuid.NewString()
 	refreshTokenId := uuid.NewString()
-	accessToken, signAccessTokenErr := b.jwtAuthProvider.Sign(*user, accessTokenTimeToLive, accessTokenSecret, accessTokenId, refreshTokenId)
+	accessTokenSecret := b.jwtAuthProvider.GetConstant().AccessTokenSecret
+	accessTokenTimeToLive := b.jwtAuthProvider.GetConstant().AccessTokenTimeToLive
+	refreshTokenSecret := b.jwtAuthProvider.GetConstant().RefreshTokenSecret
+	refreshTokenTimeToLive := b.jwtAuthProvider.GetConstant().RefreshTokenTimeToLive
+	accessToken, signAccessTokenErr := b.jwtAuthProvider.Sign(user, accessTokenTimeToLive, accessTokenSecret, accessTokenId, refreshTokenId)
 	if signAccessTokenErr != nil {
 		return nil, exception.NewServiceException(signAccessTokenErr, constant.SignJwtTokenF)
 	}
 	accessTokenIssuedAt := time.Now().Unix()
-	refreshToken, signRefreshTokenErr := b.jwtAuthProvider.Sign(*user, refreshTokenTimeToLive, refreshTokenSecret, refreshTokenId, accessTokenId)
+	refreshToken, signRefreshTokenErr := b.jwtAuthProvider.Sign(user, refreshTokenTimeToLive, refreshTokenSecret, refreshTokenId, accessTokenId)
 	if signRefreshTokenErr != nil {
 		return nil, exception.NewServiceException(signAccessTokenErr, constant.SignJwtTokenF)
 	}
@@ -49,7 +48,7 @@ func (b gormAuthBusiness) newCredentials(user *model.UserResponse) (*dto.Credent
 	return &credential, nil
 }
 
-func (b gormAuthBusiness) asBadCredentialCacheCreation(accessToken string) (*model.BadCredentialCreation, exception.ServiceException) {
+func (b gormAuthB) asBadCredentialCacheCreation(accessToken string) (*domain.BadCredentialCreation, exception.ServiceException) {
 	claims, parseErr := b.Identity(accessToken)
 	if parseErr != nil {
 		return nil, parseErr
@@ -57,25 +56,25 @@ func (b gormAuthBusiness) asBadCredentialCacheCreation(accessToken string) (*mod
 	accessTokenId := claims.ID
 	accessTokenExpiredAt := claims.ExpiresAt.Time
 	userId := claims.Payload.UserId
-	badCredential := model.BadCredentialCreation{AccessTokenId: &accessTokenId, AccessTokenExpiredAt: &accessTokenExpiredAt, UserId: &userId}
+	badCredential := domain.BadCredentialCreation{AccessTokenId: &accessTokenId, AccessTokenExpiredAt: &accessTokenExpiredAt, UserId: &userId}
 	return &badCredential, nil
 }
 
-func (b gormAuthBusiness) SignUp(request dto.RegisterRequest) (*dto.CredentialResponse, exception.ServiceException) {
+func (b gormAuthB) SignUp(request dto.RegisterRequest) (*dto.CredentialResponse, exception.ServiceException) {
 	creation := request.AsUserCreation()
-	user, signUpErr := b.userBusiness.SaveBusiness(creation)
+	user, signUpErr := b.userB.SaveB(&creation)
 	if signUpErr != nil {
 		return nil, signUpErr
 	}
-	credential, newCredentialErr := b.newCredentials(user)
+	credential, newCredentialErr := b.newCredentials(*user)
 	if newCredentialErr != nil {
 		return nil, newCredentialErr
 	}
 	return credential, nil
 }
 
-func (b gormAuthBusiness) SignIn(request dto.CredentialRequest) (*dto.CredentialResponse, exception.ServiceException) {
-	user, queriedErr := b.userBusiness.FindByUsernameBusiness(request.Username)
+func (b gormAuthB) SignIn(request dto.CredentialRequest) (*dto.CredentialResponse, exception.ServiceException) {
+	user, queriedErr := b.userB.FindByUsernameB(request.Username)
 	if queriedErr != nil {
 		return nil, exception.NewServiceException(queriedErr, constant.BadCredentialF)
 	}
@@ -83,14 +82,14 @@ func (b gormAuthBusiness) SignIn(request dto.CredentialRequest) (*dto.Credential
 	if authorizationErr != nil {
 		return nil, exception.NewServiceException(nil, constant.BadCredentialF)
 	}
-	credential, newCredentialErr := b.newCredentials(user)
+	credential, newCredentialErr := b.newCredentials(*user)
 	if newCredentialErr != nil {
 		return nil, newCredentialErr
 	}
 	return credential, nil
 }
 
-func (b gormAuthBusiness) Identity(accessToken string) (*token.AuthClaims, exception.ServiceException) {
+func (b gormAuthB) Identity(accessToken string) (*dto.AuthClaims, exception.ServiceException) {
 	claims, verifiedErr := b.jwtAuthProvider.EnsureNotBadCredential(accessToken)
 	if verifiedErr != nil {
 		return nil, verifiedErr
@@ -98,13 +97,13 @@ func (b gormAuthBusiness) Identity(accessToken string) (*token.AuthClaims, excep
 	return claims, nil
 }
 
-func (b gormAuthBusiness) Me(accessToken string) (*dto.RegisterResponse, exception.ServiceException) {
+func (b gormAuthB) Me(accessToken string) (*dto.RegisterResponse, exception.ServiceException) {
 	claims, verifiedErr := b.Identity(accessToken)
 	if verifiedErr != nil {
 		return nil, verifiedErr
 	}
 	username := claims.Subject
-	user, queriedErr := b.userBusiness.FindByUsernameBusiness(username)
+	user, queriedErr := b.userB.FindByUsernameB(username)
 	if queriedErr != nil {
 		return nil, exception.NewServiceException(queriedErr, constant.RetrieveProfileF)
 	}
@@ -113,20 +112,20 @@ func (b gormAuthBusiness) Me(accessToken string) (*dto.RegisterResponse, excepti
 	return register, nil
 }
 
-func (b gormAuthBusiness) SignOut(accessToken string) (*uint, exception.ServiceException) {
+func (b gormAuthB) SignOut(accessToken string) (*uint, exception.ServiceException) {
 	creation, parseErr := b.asBadCredentialCacheCreation(accessToken)
 	if parseErr != nil {
 		return nil, parseErr
 	}
-	saved, savedErr := b.badCredentialBusiness.SaveBusiness(creation)
+	saved, savedErr := b.badCredentialB.SaveB(creation)
 	if savedErr != nil {
 		return nil, exception.NewServiceException(savedErr, constant.SignOutF)
 	}
 	return &saved.ID, nil
 }
 
-func (b gormAuthBusiness) Refresh(accessToken string, refreshToken string) (*dto.CredentialResponse, exception.ServiceException) {
-	refreshTokenSecret := os.Getenv("REFRESH_TOKEN_SECRET")
+func (b gormAuthB) Refresh(accessToken string, refreshToken string) (*dto.CredentialResponse, exception.ServiceException) {
+	refreshTokenSecret := b.jwtAuthProvider.GetConstant().RefreshTokenSecret
 	accessClaims, accessVerifiedErr := b.Identity(accessToken)
 	if accessVerifiedErr != nil {
 		return nil, accessVerifiedErr
@@ -144,15 +143,15 @@ func (b gormAuthBusiness) Refresh(accessToken string, refreshToken string) (*dto
 	if parseErr != nil {
 		return nil, parseErr
 	}
-	_, savedErr := b.badCredentialBusiness.SaveBusiness(creation)
+	_, savedErr := b.badCredentialB.SaveB(creation)
 	if savedErr != nil {
 		return nil, exception.NewServiceException(savedErr, constant.RecallJwtTokenF)
 	}
-	user, queriedErr := b.userBusiness.FindByUsernameBusiness(accessClaims.Subject)
+	user, queriedErr := b.userB.FindByUsernameB(accessClaims.Subject)
 	if queriedErr != nil {
 		return nil, exception.NewServiceException(queriedErr, constant.RefreshTokenF)
 	}
-	credential, newCredentialErr := b.newCredentials(user)
+	credential, newCredentialErr := b.newCredentials(*user)
 	if newCredentialErr != nil {
 		return nil, newCredentialErr
 	}

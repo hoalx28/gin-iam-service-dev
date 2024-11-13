@@ -1,4 +1,4 @@
-package model
+package domain
 
 import "gorm.io/gorm"
 
@@ -38,19 +38,19 @@ func (DeviceUpdate) TableName() string    { return Device{}.TableName() }
 func (DeviceResponse) TableName() string  { return Device{}.TableName() }
 func (DeviceResponses) TableName() string { return Device{}.TableName() }
 
-func (p DeviceCreation) AsModel() *Device {
-	return &Device{Model: gorm.Model{}, IpAddress: *p.IpAddress, UserAgent: *p.UserAgent, UserID: *p.UserID}
+func (p DeviceCreation) AsModel() Device {
+	return Device{Model: gorm.Model{}, IpAddress: *p.IpAddress, UserAgent: *p.UserAgent, UserID: *p.UserID}
 }
 
-func (p Device) AsResponse() *DeviceResponse {
-	return &DeviceResponse{Model: p.Model, IpAddress: p.IpAddress, UserAgent: p.UserAgent}
+func (p Device) AsResponse() DeviceResponse {
+	return DeviceResponse{Model: p.Model, IpAddress: p.IpAddress, UserAgent: p.UserAgent}
 }
 
 func (p Devices) AsCollectionResponse() DeviceResponses {
 	result := DeviceResponses{}
 	for _, model := range p {
 		response := model.AsResponse()
-		result = append(result, *response)
+		result = append(result, response)
 	}
 	return result
 }

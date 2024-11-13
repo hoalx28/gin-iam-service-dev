@@ -3,12 +3,12 @@ package constant
 import "net/http"
 
 type Success struct {
-	Code       int32
+	Code       int
 	Message    string
 	StatusCode int
 }
 
-func newSuccess(code int32, message string, statusCode int) Success {
+func newSuccess(code int, message string, statusCode int) Success {
 	return Success{Code: code, Message: message, StatusCode: statusCode}
 }
 

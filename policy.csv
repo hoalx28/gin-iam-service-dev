@@ -1,5 +1,0 @@
-p, admin, /api/v1/status, *
-p, user, /api/v1/status, GET
-
-g, hoalx4, admin
-g, hoalx5, user

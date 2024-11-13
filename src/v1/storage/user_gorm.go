@@ -1,106 +1,108 @@
 package storage
 
 import (
+	"iam/src/v1/abstraction"
 	"iam/src/v1/config"
 	"iam/src/v1/constant"
+	"iam/src/v1/domain"
+	"iam/src/v1/domain/dto"
 	"iam/src/v1/exception"
-	"iam/src/v1/model"
 
 	"gorm.io/gorm"
 )
 
-type gormUserStorage struct {
-	db          *gorm.DB
-	roleStorage RoleStorage
+type gormUserS struct {
+	db    *gorm.DB
+	roleS abstraction.RoleS
 }
 
-func NewGormUserStorage(appCtx config.AppContext) UserStorage {
-	return gormUserStorage{db: appCtx.GetGormDB(), roleStorage: NewGormRoleStorage(appCtx)}
+func NewGormUserS(appCtx config.AppContext) abstraction.UserS {
+	return gormUserS{db: appCtx.GetGormDB(), roleS: NewGormRoleS(appCtx)}
 }
 
-func (s gormUserStorage) ExistByUsername(username string) bool {
-	err := s.db.Unscoped().Where("username = ?", username).First(&model.User{}).Error
+func (s gormUserS) ExistByUsername(username string) bool {
+	err := s.db.Unscoped().Where("username = ?", username).First(&domain.User{}).Error
 	return err != gorm.ErrRecordNotFound
 }
 
-func (s gormUserStorage) Save(model *model.User) (*model.User, exception.ServiceException) {
-	owning, queriedErr := s.roleStorage.FindAllById(model.RoleIds)
+func (s gormUserS) Save(domain *domain.User) (*domain.User, exception.ServiceException) {
+	owning, queriedErr := s.roleS.FindAllById(domain.RoleIds)
 	isOwningSideNotExisted := queriedErr != nil || len(*owning) == 0
 	if isOwningSideNotExisted {
 		return nil, exception.NewServiceException(queriedErr, constant.OwningSideNotExistedF)
 	}
-	model.Roles = *owning
-	savedErr := s.db.Create(model).Error
+	domain.Roles = *owning
+	savedErr := s.db.Create(domain).Error
 	if savedErr != nil {
 		return nil, exception.NewServiceException(savedErr, constant.SaveF)
 	}
-	return model, nil
+	return domain, nil
 }
 
-func (s gormUserStorage) FindById(id uint) (*model.User, exception.ServiceException) {
-	model := &model.User{}
-	err := s.db.Preload("Roles").First(model, id).Error
+func (s gormUserS) FindById(id uint) (*domain.User, exception.ServiceException) {
+	domain := &domain.User{}
+	err := s.db.Preload("Roles").First(domain, id).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, exception.NewServiceException(err, constant.FindByIdNoContentF)
 		}
 		return nil, exception.NewServiceException(err, constant.FindByIdF)
 	}
-	return model, nil
+	return domain, nil
 }
 
-func (s gormUserStorage) FindByUsername(username string) (*model.User, exception.ServiceException) {
-	model := &model.User{}
-	err := s.db.Preload("Roles.Privileges").Where("username = ?", username).First(model).Error
+func (s gormUserS) FindByUsername(username string) (*domain.User, exception.ServiceException) {
+	domain := &domain.User{}
+	err := s.db.Preload("Roles.Privileges").Where("username = ?", username).First(domain).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, exception.NewServiceException(err, constant.FindByNoContentF)
 		}
 		return nil, exception.NewServiceException(err, constant.FindByF)
 	}
-	return model, nil
+	return domain, nil
 }
 
-func (s gormUserStorage) FindAllById(ids []uint) (*model.Users, exception.ServiceException) {
-	models := &model.Users{}
-	err := s.db.Preload("Roles").Where("id IN ?", ids).Find(models).Error
+func (s gormUserS) FindAllById(ids []uint) (*domain.Users, exception.ServiceException) {
+	domains := &domain.Users{}
+	err := s.db.Preload("Roles").Where("id IN ?", ids).Find(domains).Error
 	if err != nil {
 		return nil, exception.NewServiceException(err, constant.FindAllByIdF)
 	}
-	return models, nil
+	return domains, nil
 }
 
-func (s gormUserStorage) FindAll(page *Page) (*model.Users, *Paging, exception.ServiceException) {
-	models := &model.Users{}
-	paging := &Paging{}
-	err := s.db.Scopes(PageScope(models, s.db, page, paging)).Preload("Roles").Find(models).Error
+func (s gormUserS) FindAll(page dto.Page) (*domain.Users, *dto.Paging, exception.ServiceException) {
+	domains := &domain.Users{}
+	paging := &dto.Paging{}
+	err := s.db.Scopes(PageScope(domains, s.db, page, paging)).Preload("Roles").Find(domains).Error
 	if err != nil {
 		return nil, nil, exception.NewServiceException(err, constant.FindAllByF)
 	}
-	return models, paging, nil
+	return domains, paging, nil
 }
 
-func (s gormUserStorage) FindAllBy(username string, page *Page) (*model.Users, *Paging, exception.ServiceException) {
-	models := &model.Users{}
-	paging := &Paging{}
-	err := s.db.Scopes(PageUsernameFilterScope(models, username, s.db, page, paging)).Preload("Roles").Where("username LIKE ?", "%"+username+"%").Find(models).Error
+func (s gormUserS) FindAllBy(username string, page dto.Page) (*domain.Users, *dto.Paging, exception.ServiceException) {
+	domains := &domain.Users{}
+	paging := &dto.Paging{}
+	err := s.db.Scopes(ConditionPageScope(domains, map[string]string{"Username": username}, s.db, page, paging)).Preload("Roles").Where("username LIKE ?", "%"+username+"%").Find(domains).Error
 	if err != nil {
 		return nil, nil, exception.NewServiceException(err, constant.FindAllByF)
 	}
-	return models, paging, nil
+	return domains, paging, nil
 }
 
-func (s gormUserStorage) FindAllArchived(page *Page) (*model.Users, *Paging, exception.ServiceException) {
-	models := &model.Users{}
-	paging := &Paging{}
-	err := s.db.Unscoped().Preload("Roles").Where("deleted_at IS NOT NULL").Scopes(PageArchivedScope(models, s.db, page, paging)).Find(models).Error
+func (s gormUserS) FindAllArchived(page dto.Page) (*domain.Users, *dto.Paging, exception.ServiceException) {
+	domains := &domain.Users{}
+	paging := &dto.Paging{}
+	err := s.db.Unscoped().Preload("Roles").Where("deleted_at IS NOT NULL").Scopes(ArchivedPageScope(domains, s.db, page, paging)).Find(domains).Error
 	if err != nil {
 		return nil, nil, exception.NewServiceException(err, constant.FindAllArchivedF)
 	}
-	return models, paging, nil
+	return domains, paging, nil
 }
 
-func (s gormUserStorage) Update(id uint, update *model.UserUpdate) (*model.User, exception.ServiceException) {
+func (s gormUserS) Update(id uint, update *domain.UserUpdate) (*domain.User, exception.ServiceException) {
 	old, queriedErr := s.FindById(id)
 	if queriedErr != nil {
 		if queriedErr.GetFailed() == constant.FindByIdNoContentF {
@@ -115,7 +117,7 @@ func (s gormUserStorage) Update(id uint, update *model.UserUpdate) (*model.User,
 	return old, nil
 }
 
-func (s gormUserStorage) Delete(id uint) (*model.User, exception.ServiceException) {
+func (s gormUserS) Delete(id uint) (*domain.User, exception.ServiceException) {
 	old, queriedErr := s.FindById(id)
 	if queriedErr != nil {
 		if queriedErr.GetFailed() == constant.FindByIdNoContentF {
@@ -123,7 +125,7 @@ func (s gormUserStorage) Delete(id uint) (*model.User, exception.ServiceExceptio
 		}
 		return nil, queriedErr
 	}
-	err := s.db.Where("id = ?", id).Delete(&model.User{}).Error
+	err := s.db.Where("id = ?", id).Delete(&domain.User{}).Error
 	if err != nil {
 		return nil, exception.NewServiceException(err, constant.DeleteF)
 	}

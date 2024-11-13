@@ -1,46 +1,48 @@
 package business
 
 import (
+	"iam/src/v1/abstraction"
 	"iam/src/v1/config"
 	"iam/src/v1/constant"
+	"iam/src/v1/domain"
+	"iam/src/v1/domain/dto"
 	"iam/src/v1/exception"
-	"iam/src/v1/model"
 	"iam/src/v1/storage"
 )
 
-type gormPrivilegeBusiness struct {
-	storage storage.PrivilegeStorage
+type gormPrivilegeB struct {
+	storage abstraction.PrivilegeS
 }
 
-func NewGormPrivilegeBusiness(appCtx config.AppContext) PrivilegeBusiness {
-	storage := storage.NewGormPrivilegeStorage(appCtx)
-	return gormPrivilegeBusiness{storage: storage}
+func NewGormPrivilegeB(appCtx config.AppContext) abstraction.PrivilegeB {
+	storage := storage.NewGormPrivilegeS(appCtx)
+	return gormPrivilegeB{storage: storage}
 }
 
-func (b gormPrivilegeBusiness) SaveBusiness(creation *model.PrivilegeCreation) (*model.PrivilegeResponse, exception.ServiceException) {
+func (b gormPrivilegeB) SaveB(creation *domain.PrivilegeCreation) (*domain.PrivilegeResponse, exception.ServiceException) {
 	isExisted := b.storage.ExistByName(*creation.Name)
 	if isExisted {
 		return nil, exception.NewServiceException(nil, constant.AlreadyExistedF)
 	}
 	model := creation.AsModel()
-	saved, saveErr := b.storage.Save(model)
+	saved, saveErr := b.storage.Save(&model)
 	if saveErr != nil {
 		return nil, saveErr
 	}
 	response := saved.AsResponse()
-	return response, nil
+	return &response, nil
 }
 
-func (b gormPrivilegeBusiness) FindByIdBusiness(id uint) (*model.PrivilegeResponse, exception.ServiceException) {
+func (b gormPrivilegeB) FindByIdB(id uint) (*domain.PrivilegeResponse, exception.ServiceException) {
 	model, queriedErr := b.storage.FindById(id)
 	if queriedErr != nil {
 		return nil, queriedErr
 	}
 	response := model.AsResponse()
-	return response, nil
+	return &response, nil
 }
 
-func (b gormPrivilegeBusiness) FindAllByIdBusiness(ids []uint) (*model.PrivilegeResponses, exception.ServiceException) {
+func (b gormPrivilegeB) FindAllByIdB(ids []uint) (*domain.PrivilegeResponses, exception.ServiceException) {
 	models, queriedErr := b.storage.FindAllById(ids)
 	if queriedErr != nil {
 		return nil, queriedErr
@@ -49,7 +51,7 @@ func (b gormPrivilegeBusiness) FindAllByIdBusiness(ids []uint) (*model.Privilege
 	return &responses, nil
 }
 
-func (b gormPrivilegeBusiness) FindAllBusiness(page *storage.Page) (*model.PrivilegeResponses, *storage.Paging, exception.ServiceException) {
+func (b gormPrivilegeB) FindAllB(page dto.Page) (*domain.PrivilegeResponses, *dto.Paging, exception.ServiceException) {
 	models, paging, queriedErr := b.storage.FindAll(page)
 	if queriedErr != nil {
 		return nil, nil, queriedErr
@@ -58,7 +60,7 @@ func (b gormPrivilegeBusiness) FindAllBusiness(page *storage.Page) (*model.Privi
 	return &responses, paging, nil
 }
 
-func (b gormPrivilegeBusiness) FindAllByBusiness(name string, page *storage.Page) (*model.PrivilegeResponses, *storage.Paging, exception.ServiceException) {
+func (b gormPrivilegeB) FindAllByB(name string, page dto.Page) (*domain.PrivilegeResponses, *dto.Paging, exception.ServiceException) {
 	models, paging, queriedErr := b.storage.FindAllBy(name, page)
 	if queriedErr != nil {
 		return nil, nil, queriedErr
@@ -67,7 +69,7 @@ func (b gormPrivilegeBusiness) FindAllByBusiness(name string, page *storage.Page
 	return &responses, paging, nil
 }
 
-func (b gormPrivilegeBusiness) FindAllArchivedBusiness(page *storage.Page) (*model.PrivilegeResponses, *storage.Paging, exception.ServiceException) {
+func (b gormPrivilegeB) FindAllArchivedB(page dto.Page) (*domain.PrivilegeResponses, *dto.Paging, exception.ServiceException) {
 	models, paging, queriedErr := b.storage.FindAllArchived(page)
 	if queriedErr != nil {
 		return nil, nil, queriedErr
@@ -76,20 +78,20 @@ func (b gormPrivilegeBusiness) FindAllArchivedBusiness(page *storage.Page) (*mod
 	return &responses, paging, nil
 }
 
-func (b gormPrivilegeBusiness) UpdateBusiness(id uint, update *model.PrivilegeUpdate) (*model.PrivilegeResponse, exception.ServiceException) {
+func (b gormPrivilegeB) UpdateB(id uint, update *domain.PrivilegeUpdate) (*domain.PrivilegeResponse, exception.ServiceException) {
 	old, updateErr := b.storage.Update(id, update)
 	if updateErr != nil {
 		return nil, updateErr
 	}
 	response := old.AsResponse()
-	return response, nil
+	return &response, nil
 }
 
-func (b gormPrivilegeBusiness) DeleteBusiness(id uint) (*model.PrivilegeResponse, exception.ServiceException) {
+func (b gormPrivilegeB) DeleteB(id uint) (*domain.PrivilegeResponse, exception.ServiceException) {
 	old, deleteErr := b.storage.Delete(id)
 	if deleteErr != nil {
 		return nil, deleteErr
 	}
 	response := old.AsResponse()
-	return response, nil
+	return &response, nil
 }

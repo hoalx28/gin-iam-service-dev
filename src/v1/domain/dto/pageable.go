@@ -1,4 +1,4 @@
-package storage
+package dto
 
 type Page struct {
 	Page int `form:"page" binding:"required,gte=1"`

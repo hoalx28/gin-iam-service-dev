@@ -1,7 +1,7 @@
 package dto
 
 import (
-	"iam/src/v1/model"
+	"iam/src/v1/domain"
 
 	"gorm.io/gorm"
 )
@@ -15,15 +15,15 @@ type RegisterRequest struct {
 type RegisterResponse struct {
 	gorm.Model
 	Username string `json:"username,omitempty"`
-	Password string `json:"-,omitempty"`
-	Roles    model.RoleResponses
+	Password string `json:"-"`
+	Roles    domain.RoleResponses
 }
 
-func (r RegisterRequest) AsUserCreation() *model.UserCreation {
-	return &model.UserCreation{Username: &r.Username, Password: &r.Password, RoleIds: r.RoleIds}
+func (r RegisterRequest) AsUserCreation() domain.UserCreation {
+	return domain.UserCreation{Username: &r.Username, Password: &r.Password, RoleIds: r.RoleIds}
 }
 
-func (r *RegisterResponse) FromUserResponse(user model.UserResponse) {
+func (r *RegisterResponse) FromUserResponse(user domain.UserResponse) {
 	r.Model = user.Model
 	r.Username = user.Username
 	r.Password = user.Password

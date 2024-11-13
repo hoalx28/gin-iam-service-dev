@@ -1,93 +1,95 @@
 package storage
 
 import (
+	"iam/src/v1/abstraction"
 	"iam/src/v1/config"
 	"iam/src/v1/constant"
+	"iam/src/v1/domain"
+	"iam/src/v1/domain/dto"
 	"iam/src/v1/exception"
-	"iam/src/v1/model"
 
 	"gorm.io/gorm"
 )
 
-type gormDeviceStorage struct {
-	db          *gorm.DB
-	userStorage UserStorage
+type gormDeviceS struct {
+	db    *gorm.DB
+	UserS abstraction.UserS
 }
 
-func NewGormDeviceStorage(appCtx config.AppContext) DeviceStorage {
-	return gormDeviceStorage{db: appCtx.GetGormDB(), userStorage: NewGormUserStorage(appCtx)}
+func NewGormDeviceS(appCtx config.AppContext) abstraction.DeviceS {
+	return gormDeviceS{db: appCtx.GetGormDB(), UserS: NewGormUserS(appCtx)}
 }
 
-func (s gormDeviceStorage) ExistByIpAddress(ipAddress string) bool {
-	err := s.db.Unscoped().Where("ip_address = ?", ipAddress).First(&model.Device{}).Error
+func (s gormDeviceS) ExistByIpAddress(ipAddress string) bool {
+	err := s.db.Unscoped().Where("ip_address = ?", ipAddress).First(&domain.Device{}).Error
 	return err != gorm.ErrRecordNotFound
 }
 
-func (s gormDeviceStorage) Save(model *model.Device) (*model.Device, exception.ServiceException) {
-	owning, queriedErr := s.userStorage.FindById(model.UserID)
+func (s gormDeviceS) Save(domain *domain.Device) (*domain.Device, exception.ServiceException) {
+	owning, queriedErr := s.UserS.FindById(domain.UserID)
 	if queriedErr != nil {
 		return nil, exception.NewServiceException(queriedErr, constant.OwningSideNotExistedF)
 	}
-	model.User = owning
-	savedErr := s.db.Create(model).Error
+	domain.User = owning
+	savedErr := s.db.Create(domain).Error
 	if savedErr != nil {
 		return nil, exception.NewServiceException(savedErr, constant.SaveF)
 	}
-	return model, nil
+	return domain, nil
 }
 
-func (s gormDeviceStorage) FindById(id uint) (*model.Device, exception.ServiceException) {
-	model := &model.Device{}
-	err := s.db.First(model, id).Error
+func (s gormDeviceS) FindById(id uint) (*domain.Device, exception.ServiceException) {
+	domain := &domain.Device{}
+	err := s.db.First(domain, id).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, exception.NewServiceException(err, constant.FindByIdNoContentF)
 		}
 		return nil, exception.NewServiceException(err, constant.FindByIdF)
 	}
-	return model, nil
+	return domain, nil
 }
 
-func (s gormDeviceStorage) FindAllById(ids []uint) (*model.Devices, exception.ServiceException) {
-	models := &model.Devices{}
-	err := s.db.Where("id IN ?", ids).Find(models).Error
+func (s gormDeviceS) FindAllById(ids []uint) (*domain.Devices, exception.ServiceException) {
+	domains := &domain.Devices{}
+	err := s.db.Where("id IN ?", ids).Find(domains).Error
 	if err != nil {
 		return nil, exception.NewServiceException(err, constant.FindAllByIdF)
 	}
-	return models, nil
+	return domains, nil
 }
 
-func (s gormDeviceStorage) FindAll(page *Page) (*model.Devices, *Paging, exception.ServiceException) {
-	models := &model.Devices{}
-	paging := &Paging{}
-	err := s.db.Scopes(PageScope(models, s.db, page, paging)).Find(models).Error
+func (s gormDeviceS) FindAll(page dto.Page) (*domain.Devices, *dto.Paging, exception.ServiceException) {
+	domains := &domain.Devices{}
+	paging := &dto.Paging{}
+	err := s.db.Scopes(PageScope(domains, s.db, page, paging)).Find(domains).Error
 	if err != nil {
 		return nil, nil, exception.NewServiceException(err, constant.FindAllByF)
 	}
-	return models, paging, nil
+	return domains, paging, nil
 }
 
-func (s gormDeviceStorage) FindAllBy(userAgent string, page *Page) (*model.Devices, *Paging, exception.ServiceException) {
-	models := &model.Devices{}
-	paging := &Paging{}
-	err := s.db.Scopes(PageUserAgentFilterScope(models, userAgent, s.db, page, paging)).Where("user_agent LIKE ?", "%"+userAgent+"%").Find(models).Error
+func (s gormDeviceS) FindAllBy(userAgent string, page dto.Page) (*domain.Devices, *dto.Paging, exception.ServiceException) {
+	domains := &domain.Devices{}
+	paging := &dto.Paging{}
+	err := s.db.Scopes(ConditionPageScope(domains, map[string]string{"UserAgent": userAgent}, s.db, page, paging)).Where("user_agent LIKE ?", "%"+userAgent+"%").Find(domains).Error
 	if err != nil {
 		return nil, nil, exception.NewServiceException(err, constant.FindAllByF)
 	}
-	return models, paging, nil
+	return domains, paging, nil
 }
 
-func (s gormDeviceStorage) FindAllArchived(page *Page) (*model.Devices, *Paging, exception.ServiceException) {
-	models := &model.Devices{}
-	paging := &Paging{}
-	err := s.db.Unscoped().Where("deleted_at IS NOT NULL").Scopes(PageArchivedScope(models, s.db, page, paging)).Find(models).Error
+func (s gormDeviceS) FindAllArchived(page dto.Page) (*domain.Devices, *dto.Paging, exception.ServiceException) {
+	domains := &domain.Devices{}
+	paging := &dto.Paging{}
+	err := s.db.Unscoped().Where("deleted_at IS NOT NULL").Scopes(ArchivedPageScope(domains, s.db, page, paging)).Find(domains).Error
 	if err != nil {
 		return nil, nil, exception.NewServiceException(err, constant.FindAllArchivedF)
 	}
-	return models, paging, nil
+	return domains, paging, nil
 }
 
-func (s gormDeviceStorage) Update(id uint, update *model.DeviceUpdate) (*model.Device, exception.ServiceException) {
+func (s gormDeviceS) Update(id uint, update *domain.DeviceUpdate) (*domain.Device, exception.ServiceException) {
 	old, queriedErr := s.FindById(id)
 	if queriedErr != nil {
 		if queriedErr.GetFailed() == constant.FindByIdNoContentF {
@@ -102,7 +104,7 @@ func (s gormDeviceStorage) Update(id uint, update *model.DeviceUpdate) (*model.D
 	return old, nil
 }
 
-func (s gormDeviceStorage) Delete(id uint) (*model.Device, exception.ServiceException) {
+func (s gormDeviceS) Delete(id uint) (*domain.Device, exception.ServiceException) {
 	old, queriedErr := s.FindById(id)
 	if queriedErr != nil {
 		if queriedErr.GetFailed() == constant.FindByIdNoContentF {
@@ -110,7 +112,7 @@ func (s gormDeviceStorage) Delete(id uint) (*model.Device, exception.ServiceExce
 		}
 		return nil, queriedErr
 	}
-	err := s.db.Where("id = ?", id).Delete(&model.Device{}).Error
+	err := s.db.Where("id = ?", id).Delete(&domain.Device{}).Error
 	if err != nil {
 		return nil, exception.NewServiceException(err, constant.DeleteF)
 	}

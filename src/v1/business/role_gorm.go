@@ -1,46 +1,48 @@
 package business
 
 import (
+	"iam/src/v1/abstraction"
 	"iam/src/v1/config"
 	"iam/src/v1/constant"
+	"iam/src/v1/domain"
+	"iam/src/v1/domain/dto"
 	"iam/src/v1/exception"
-	"iam/src/v1/model"
 	"iam/src/v1/storage"
 )
 
-type gormRoleBusiness struct {
-	storage storage.RoleStorage
+type gormRoleB struct {
+	storage abstraction.RoleS
 }
 
-func NewGormRoleBusiness(appCtx config.AppContext) RoleBusiness {
-	storage := storage.NewGormRoleStorage(appCtx)
-	return gormRoleBusiness{storage: storage}
+func NewGormRoleB(appCtx config.AppContext) abstraction.RoleB {
+	storage := storage.NewGormRoleS(appCtx)
+	return gormRoleB{storage: storage}
 }
 
-func (b gormRoleBusiness) SaveBusiness(creation *model.RoleCreation) (*model.RoleResponse, exception.ServiceException) {
+func (b gormRoleB) SaveB(creation *domain.RoleCreation) (*domain.RoleResponse, exception.ServiceException) {
 	isExisted := b.storage.ExistByName(*creation.Name)
 	if isExisted {
 		return nil, exception.NewServiceException(nil, constant.AlreadyExistedF)
 	}
 	model := creation.AsModel()
-	saved, saveErr := b.storage.Save(model)
+	saved, saveErr := b.storage.Save(&model)
 	if saveErr != nil {
 		return nil, saveErr
 	}
 	response := saved.AsResponse()
-	return response, nil
+	return &response, nil
 }
 
-func (b gormRoleBusiness) FindByIdBusiness(id uint) (*model.RoleResponse, exception.ServiceException) {
+func (b gormRoleB) FindByIdB(id uint) (*domain.RoleResponse, exception.ServiceException) {
 	model, queriedErr := b.storage.FindById(id)
 	if queriedErr != nil {
 		return nil, queriedErr
 	}
 	response := model.AsResponse()
-	return response, nil
+	return &response, nil
 }
 
-func (b gormRoleBusiness) FindAllByIdBusiness(ids []uint) (*model.RoleResponses, exception.ServiceException) {
+func (b gormRoleB) FindAllByIdB(ids []uint) (*domain.RoleResponses, exception.ServiceException) {
 	models, queriedErr := b.storage.FindAllById(ids)
 	if queriedErr != nil {
 		return nil, queriedErr
@@ -49,7 +51,7 @@ func (b gormRoleBusiness) FindAllByIdBusiness(ids []uint) (*model.RoleResponses,
 	return &responses, nil
 }
 
-func (b gormRoleBusiness) FindAllBusiness(page *storage.Page) (*model.RoleResponses, *storage.Paging, exception.ServiceException) {
+func (b gormRoleB) FindAllB(page dto.Page) (*domain.RoleResponses, *dto.Paging, exception.ServiceException) {
 	models, paging, queriedErr := b.storage.FindAll(page)
 	if queriedErr != nil {
 		return nil, nil, queriedErr
@@ -58,7 +60,7 @@ func (b gormRoleBusiness) FindAllBusiness(page *storage.Page) (*model.RoleRespon
 	return &responses, paging, nil
 }
 
-func (b gormRoleBusiness) FindAllByBusiness(name string, page *storage.Page) (*model.RoleResponses, *storage.Paging, exception.ServiceException) {
+func (b gormRoleB) FindAllByB(name string, page dto.Page) (*domain.RoleResponses, *dto.Paging, exception.ServiceException) {
 	models, paging, queriedErr := b.storage.FindAllBy(name, page)
 	if queriedErr != nil {
 		return nil, nil, queriedErr
@@ -67,7 +69,7 @@ func (b gormRoleBusiness) FindAllByBusiness(name string, page *storage.Page) (*m
 	return &responses, paging, nil
 }
 
-func (b gormRoleBusiness) FindAllArchivedBusiness(page *storage.Page) (*model.RoleResponses, *storage.Paging, exception.ServiceException) {
+func (b gormRoleB) FindAllArchivedB(page dto.Page) (*domain.RoleResponses, *dto.Paging, exception.ServiceException) {
 	models, paging, queriedErr := b.storage.FindAllArchived(page)
 	if queriedErr != nil {
 		return nil, nil, queriedErr
@@ -76,20 +78,20 @@ func (b gormRoleBusiness) FindAllArchivedBusiness(page *storage.Page) (*model.Ro
 	return &responses, paging, nil
 }
 
-func (b gormRoleBusiness) UpdateBusiness(id uint, update *model.RoleUpdate) (*model.RoleResponse, exception.ServiceException) {
+func (b gormRoleB) UpdateB(id uint, update *domain.RoleUpdate) (*domain.RoleResponse, exception.ServiceException) {
 	old, updateErr := b.storage.Update(id, update)
 	if updateErr != nil {
 		return nil, updateErr
 	}
 	response := old.AsResponse()
-	return response, nil
+	return &response, nil
 }
 
-func (b gormRoleBusiness) DeleteBusiness(id uint) (*model.RoleResponse, exception.ServiceException) {
+func (b gormRoleB) DeleteB(id uint) (*domain.RoleResponse, exception.ServiceException) {
 	old, deleteErr := b.storage.Delete(id)
 	if deleteErr != nil {
 		return nil, deleteErr
 	}
 	response := old.AsResponse()
-	return response, nil
+	return &response, nil
 }

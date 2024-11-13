@@ -8,8 +8,8 @@ type Paging struct {
 }
 
 type pagingResponse[T any] struct {
-	Timestamp  int64  `json:"timestamp,omitempty"`
-	Code       int32  `json:"code,omitempty"`
+	Timestamp  int    `json:"timestamp,omitempty"`
+	Code       int    `json:"code,omitempty"`
 	StatusCode int    `json:"status_code,omitempty"`
 	Message    string `json:"message,omitempty"`
 	Payload    T      `json:"payload,omitempty"`
@@ -20,6 +20,6 @@ func NewPaging(page int, totalPage int, totalRecord int) Paging {
 	return Paging{Page: page, TotalPage: totalPage, TotalRecord: totalRecord}
 }
 
-func NewPagingResponse[T any](timestamp int64, code int32, statusCode int, message string, payload T, paging Paging) pagingResponse[T] {
+func NewPagingResponse[T any](timestamp int, code int, statusCode int, message string, payload T, paging Paging) pagingResponse[T] {
 	return pagingResponse[T]{Timestamp: timestamp, Code: code, StatusCode: statusCode, Message: message, Payload: payload, Paging: paging}
 }

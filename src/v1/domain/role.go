@@ -1,4 +1,4 @@
-package model
+package domain
 
 import "gorm.io/gorm"
 
@@ -39,19 +39,19 @@ func (RoleUpdate) TableName() string    { return Role{}.TableName() }
 func (RoleResponse) TableName() string  { return Role{}.TableName() }
 func (RoleResponses) TableName() string { return Role{}.TableName() }
 
-func (p RoleCreation) AsModel() *Role {
-	return &Role{Model: gorm.Model{}, Name: *p.Name, Description: *p.Description, PrivilegeIds: p.PrivilegeIds}
+func (p RoleCreation) AsModel() Role {
+	return Role{Model: gorm.Model{}, Name: *p.Name, Description: *p.Description, PrivilegeIds: p.PrivilegeIds}
 }
 
-func (p Role) AsResponse() *RoleResponse {
-	return &RoleResponse{Model: p.Model, Name: p.Name, Description: p.Description, Privileges: p.Privileges.AsCollectionResponse()}
+func (p Role) AsResponse() RoleResponse {
+	return RoleResponse{Model: p.Model, Name: p.Name, Description: p.Description, Privileges: p.Privileges.AsCollectionResponse()}
 }
 
 func (p Roles) AsCollectionResponse() RoleResponses {
 	result := RoleResponses{}
 	for _, model := range p {
 		response := model.AsResponse()
-		result = append(result, *response)
+		result = append(result, response)
 	}
 	return result
 }

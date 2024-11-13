@@ -5,14 +5,14 @@ import (
 	"iam/src/v1/transport"
 )
 
-type userRoute struct{}
+type userR struct{}
 
-func NewUserRoute() *userRoute {
-	return &userRoute{}
+func NewUserR() userR {
+	return userR{}
 }
 
-func (r userRoute) Config(appCtx config.AppContext) {
-	transport := transport.NewUserTransport(appCtx)
+func (r userR) Config(appCtx config.AppContext) {
+	transport := transport.NewUserT(appCtx)
 	engine := appCtx.GetGinEngine()
 	v1 := engine.Group("/api/v1")
 	{

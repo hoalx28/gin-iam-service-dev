@@ -1,46 +1,48 @@
 package business
 
 import (
+	"iam/src/v1/abstraction"
 	"iam/src/v1/config"
 	"iam/src/v1/constant"
+	"iam/src/v1/domain"
+	"iam/src/v1/domain/dto"
 	"iam/src/v1/exception"
-	"iam/src/v1/model"
 	"iam/src/v1/storage"
 )
 
-type gormDeviceBusiness struct {
-	storage storage.DeviceStorage
+type gormDeviceB struct {
+	storage abstraction.DeviceS
 }
 
-func NewGormDeviceBusiness(appCtx config.AppContext) DeviceBusiness {
-	storage := storage.NewGormDeviceStorage(appCtx)
-	return gormDeviceBusiness{storage: storage}
+func NewGormDeviceB(appCtx config.AppContext) abstraction.DeviceB {
+	storage := storage.NewGormDeviceS(appCtx)
+	return gormDeviceB{storage: storage}
 }
 
-func (b gormDeviceBusiness) SaveBusiness(creation *model.DeviceCreation) (*model.DeviceResponse, exception.ServiceException) {
+func (b gormDeviceB) SaveB(creation *domain.DeviceCreation) (*domain.DeviceResponse, exception.ServiceException) {
 	isExisted := b.storage.ExistByIpAddress(*creation.IpAddress)
 	if isExisted {
 		return nil, exception.NewServiceException(nil, constant.AlreadyExistedF)
 	}
 	model := creation.AsModel()
-	saved, saveErr := b.storage.Save(model)
+	saved, saveErr := b.storage.Save(&model)
 	if saveErr != nil {
 		return nil, saveErr
 	}
 	response := saved.AsResponse()
-	return response, nil
+	return &response, nil
 }
 
-func (b gormDeviceBusiness) FindByIdBusiness(id uint) (*model.DeviceResponse, exception.ServiceException) {
+func (b gormDeviceB) FindByIdB(id uint) (*domain.DeviceResponse, exception.ServiceException) {
 	model, queriedErr := b.storage.FindById(id)
 	if queriedErr != nil {
 		return nil, queriedErr
 	}
 	response := model.AsResponse()
-	return response, nil
+	return &response, nil
 }
 
-func (b gormDeviceBusiness) FindAllByIdBusiness(ids []uint) (*model.DeviceResponses, exception.ServiceException) {
+func (b gormDeviceB) FindAllByIdB(ids []uint) (*domain.DeviceResponses, exception.ServiceException) {
 	models, queriedErr := b.storage.FindAllById(ids)
 	if queriedErr != nil {
 		return nil, queriedErr
@@ -49,7 +51,7 @@ func (b gormDeviceBusiness) FindAllByIdBusiness(ids []uint) (*model.DeviceRespon
 	return &responses, nil
 }
 
-func (b gormDeviceBusiness) FindAllBusiness(page *storage.Page) (*model.DeviceResponses, *storage.Paging, exception.ServiceException) {
+func (b gormDeviceB) FindAllB(page dto.Page) (*domain.DeviceResponses, *dto.Paging, exception.ServiceException) {
 	models, paging, queriedErr := b.storage.FindAll(page)
 	if queriedErr != nil {
 		return nil, nil, queriedErr
@@ -58,8 +60,8 @@ func (b gormDeviceBusiness) FindAllBusiness(page *storage.Page) (*model.DeviceRe
 	return &responses, paging, nil
 }
 
-func (b gormDeviceBusiness) FindAllByBusiness(name string, page *storage.Page) (*model.DeviceResponses, *storage.Paging, exception.ServiceException) {
-	models, paging, queriedErr := b.storage.FindAllBy(name, page)
+func (b gormDeviceB) FindAllByB(userAgent string, page dto.Page) (*domain.DeviceResponses, *dto.Paging, exception.ServiceException) {
+	models, paging, queriedErr := b.storage.FindAllBy(userAgent, page)
 	if queriedErr != nil {
 		return nil, nil, queriedErr
 	}
@@ -67,7 +69,7 @@ func (b gormDeviceBusiness) FindAllByBusiness(name string, page *storage.Page) (
 	return &responses, paging, nil
 }
 
-func (b gormDeviceBusiness) FindAllArchivedBusiness(page *storage.Page) (*model.DeviceResponses, *storage.Paging, exception.ServiceException) {
+func (b gormDeviceB) FindAllArchivedB(page dto.Page) (*domain.DeviceResponses, *dto.Paging, exception.ServiceException) {
 	models, paging, queriedErr := b.storage.FindAllArchived(page)
 	if queriedErr != nil {
 		return nil, nil, queriedErr
@@ -76,20 +78,20 @@ func (b gormDeviceBusiness) FindAllArchivedBusiness(page *storage.Page) (*model.
 	return &responses, paging, nil
 }
 
-func (b gormDeviceBusiness) UpdateBusiness(id uint, update *model.DeviceUpdate) (*model.DeviceResponse, exception.ServiceException) {
+func (b gormDeviceB) UpdateB(id uint, update *domain.DeviceUpdate) (*domain.DeviceResponse, exception.ServiceException) {
 	old, updateErr := b.storage.Update(id, update)
 	if updateErr != nil {
 		return nil, updateErr
 	}
 	response := old.AsResponse()
-	return response, nil
+	return &response, nil
 }
 
-func (b gormDeviceBusiness) DeleteBusiness(id uint) (*model.DeviceResponse, exception.ServiceException) {
+func (b gormDeviceB) DeleteB(id uint) (*domain.DeviceResponse, exception.ServiceException) {
 	old, deleteErr := b.storage.Delete(id)
 	if deleteErr != nil {
 		return nil, deleteErr
 	}
 	response := old.AsResponse()
-	return response, nil
+	return &response, nil
 }

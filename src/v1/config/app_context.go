@@ -3,21 +3,18 @@ package config
 import (
 	"sync"
 
-	"github.com/casbin/casbin/v2"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
 type appContext struct {
-	gormDB         *gorm.DB
-	ginEngine      *gin.Engine
-	casbinEnforcer *casbin.Enforcer
+	gormDB    *gorm.DB
+	ginEngine *gin.Engine
 }
 
 type AppContext interface {
 	GetGormDB() *gorm.DB
 	GetGinEngine() *gin.Engine
-	GetCasbinEnforcer() *casbin.Enforcer
 }
 
 var (
@@ -25,12 +22,12 @@ var (
 	appContextInstance *appContext
 )
 
-func NewAppContext(gormDB *gorm.DB, ginEngine *gin.Engine, casbinEnforcer *casbin.Enforcer) *appContext {
+func NewAppContext(gormDB *gorm.DB, ginEngine *gin.Engine) *appContext {
 	if appContextInstance == nil {
 		ctxLock.Lock()
 		defer ctxLock.Unlock()
 		if appContextInstance == nil {
-			appContextInstance = &appContext{gormDB: gormDB, ginEngine: ginEngine, casbinEnforcer: casbinEnforcer}
+			appContextInstance = &appContext{gormDB: gormDB, ginEngine: ginEngine}
 		}
 	}
 	return appContextInstance
@@ -42,8 +39,4 @@ func (ctx *appContext) GetGormDB() *gorm.DB {
 
 func (ctx *appContext) GetGinEngine() *gin.Engine {
 	return ctx.ginEngine
-}
-
-func (ctx *appContext) GetCasbinEnforcer() *casbin.Enforcer {
-	return ctx.casbinEnforcer
 }

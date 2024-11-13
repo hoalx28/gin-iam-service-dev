@@ -2,24 +2,26 @@ package route
 
 import (
 	"iam/src/v1/config"
+	"iam/src/v1/middleware"
 	"iam/src/v1/transport"
 )
 
-type statusRoute struct{}
+type statusR struct{}
 
-func NewStatusRoute() *statusRoute {
-	return &statusRoute{}
+func NewStatusR() statusR {
+	return statusR{}
 }
 
-func (r statusRoute) Config(appCtx config.AppContext) {
-	transport := transport.NewStatusTransport(appCtx)
+func (r statusR) Config(appCtx config.AppContext) {
+	transport := transport.NewStatusT(appCtx)
+	middleware := middleware.NewAuthenticatedM(appCtx)
 	engine := appCtx.GetGinEngine()
 	v1 := engine.Group("/api/v1")
 	{
 		statuses := v1.Group("/statuses")
 		{
 			statuses.POST("/", transport.Save(appCtx))
-			statuses.GET("/:id", transport.FindById(appCtx))
+			statuses.GET("/:id", middleware.Authenticated(), transport.FindById(appCtx))
 			statuses.GET("/", transport.FindAll(appCtx))
 			statuses.GET("/search", transport.FindAllBy(appCtx))
 			statuses.GET("/archived", transport.FindAllArchived(appCtx))

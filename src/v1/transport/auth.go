@@ -1,128 +1,130 @@
 package transport
 
 import (
+	"iam/src/v1/abstraction"
 	"iam/src/v1/business"
 	"iam/src/v1/config"
 	"iam/src/v1/constant"
-	"iam/src/v1/model/dto"
+	"iam/src/v1/domain/dto"
+	"iam/src/v1/util"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/samber/lo"
 )
 
-type authTransport struct {
-	business business.AuthBusiness
-	util     transportUtil
+type authT struct {
+	business abstraction.AuthB
+	httpUtil util.HttpUtil
 }
 
-func NewAuthTransport(appCtx config.AppContext) *authTransport {
-	business := business.NewGormAuthBusiness(appCtx)
-	return &authTransport{business: business, util: NewTransportUtil()}
+func NewAuthT(appCtx config.AppContext) authT {
+	business := business.NewGormAuthB(appCtx)
+	return authT{business: business, httpUtil: util.NewHttpUtil()}
 }
 
-func (t authTransport) SignUp(appCtx config.AppContext) gin.HandlerFunc {
+func (t authT) SignUp(appCtx config.AppContext) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var request dto.RegisterRequest
 		if parseErr := ctx.ShouldBind(&request); parseErr != nil {
-			t.util.DoParseBodyErrorResponse(ctx, parseErr)
+			t.httpUtil.DoErrorParseBody(ctx, parseErr)
 			return
 		}
 		credential, signUpErr := t.business.SignUp(request)
 		if signUpErr != nil {
-			t.util.DoErrorResponse(ctx, signUpErr)
+			t.httpUtil.DoError(ctx, signUpErr)
 			return
 		}
-		t.util.DoSuccessResponse(ctx, constant.SignUp, credential)
+		t.httpUtil.DoSuccess(ctx, constant.SignUp, credential)
 	}
 }
 
-func (t authTransport) SignIn(appCtx config.AppContext) gin.HandlerFunc {
+func (t authT) SignIn(appCtx config.AppContext) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var request dto.CredentialRequest
 		if parseErr := ctx.ShouldBind(&request); parseErr != nil {
-			t.util.DoParseBodyErrorResponse(ctx, parseErr)
+			t.httpUtil.DoErrorParseBody(ctx, parseErr)
 			return
 		}
 		credential, signUpErr := t.business.SignIn(request)
 		if signUpErr != nil {
-			t.util.DoErrorResponse(ctx, signUpErr)
+			t.httpUtil.DoError(ctx, signUpErr)
 			return
 		}
-		t.util.DoSuccessResponse(ctx, constant.SignIn, credential)
+		t.httpUtil.DoSuccess(ctx, constant.SignIn, credential)
 	}
 }
 
-func (t authTransport) Identity(appCtx config.AppContext) gin.HandlerFunc {
+func (t authT) Identity(appCtx config.AppContext) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		authorizationHeader := ctx.GetHeader(AUTHORIZATION)
+		authorizationHeader := ctx.GetHeader(util.AUTHORIZATION)
 		if lo.IsEmpty(authorizationHeader) {
-			t.util.DoGetHeaderErrorResponse(ctx, AUTHORIZATION)
+			t.httpUtil.DoErrorGetHeader(ctx, util.AUTHORIZATION)
 			return
 		}
 		accessToken := strings.Replace(authorizationHeader, "Bearer ", "", 1)
 		_, identityErr := t.business.Identity(accessToken)
 		if identityErr != nil {
-			t.util.DoErrorResponse(ctx, identityErr)
+			t.httpUtil.DoError(ctx, identityErr)
 			return
 		}
-		t.util.DoSuccessResponse(ctx, constant.VerifyIdentity, true)
+		t.httpUtil.DoSuccess(ctx, constant.VerifyIdentity, true)
 	}
 }
 
-func (t authTransport) Me(appCtx config.AppContext) gin.HandlerFunc {
+func (t authT) Me(appCtx config.AppContext) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		authorizationHeader := ctx.GetHeader(AUTHORIZATION)
+		authorizationHeader := ctx.GetHeader(util.AUTHORIZATION)
 		if lo.IsEmpty(authorizationHeader) {
-			t.util.DoGetHeaderErrorResponse(ctx, AUTHORIZATION)
+			t.httpUtil.DoErrorGetHeader(ctx, util.AUTHORIZATION)
 			return
 		}
 		accessToken := strings.Replace(authorizationHeader, "Bearer ", "", 1)
 		register, queriedErr := t.business.Me(accessToken)
 		if queriedErr != nil {
-			t.util.DoErrorResponse(ctx, queriedErr)
+			t.httpUtil.DoError(ctx, queriedErr)
 			return
 		}
-		t.util.DoSuccessResponse(ctx, constant.RetrieveProfile, register)
+		t.httpUtil.DoSuccess(ctx, constant.RetrieveProfile, register)
 	}
 }
 
-func (t authTransport) SignOut(appCtx config.AppContext) gin.HandlerFunc {
+func (t authT) SignOut(appCtx config.AppContext) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		authorizationHeader := ctx.GetHeader(AUTHORIZATION)
+		authorizationHeader := ctx.GetHeader(util.AUTHORIZATION)
 		if lo.IsEmpty(authorizationHeader) {
-			t.util.DoGetHeaderErrorResponse(ctx, AUTHORIZATION)
+			t.httpUtil.DoErrorGetHeader(ctx, util.AUTHORIZATION)
 			return
 		}
 		accessToken := strings.Replace(authorizationHeader, "Bearer ", "", 1)
 		tokenId, signOutErr := t.business.SignOut(accessToken)
 		if signOutErr != nil {
-			t.util.DoErrorResponse(ctx, signOutErr)
+			t.httpUtil.DoError(ctx, signOutErr)
 			return
 		}
-		t.util.DoSuccessResponse(ctx, constant.SignOut, tokenId)
+		t.httpUtil.DoSuccess(ctx, constant.SignOut, tokenId)
 	}
 }
 
-func (t authTransport) Refresh(appCtx config.AppContext) gin.HandlerFunc {
+func (t authT) Refresh(appCtx config.AppContext) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		authorizationHeader := ctx.GetHeader(AUTHORIZATION)
+		authorizationHeader := ctx.GetHeader(util.AUTHORIZATION)
 		if lo.IsEmpty(authorizationHeader) {
-			t.util.DoGetHeaderErrorResponse(ctx, AUTHORIZATION)
+			t.httpUtil.DoErrorGetHeader(ctx, util.AUTHORIZATION)
 			return
 		}
-		refreshTokenHeader := ctx.GetHeader(X_REFRESH_TOKEN)
+		refreshTokenHeader := ctx.GetHeader(util.X_REFRESH_TOKEN)
 		if lo.IsEmpty(refreshTokenHeader) {
-			t.util.DoGetHeaderErrorResponse(ctx, X_REFRESH_TOKEN)
+			t.httpUtil.DoErrorGetHeader(ctx, util.X_REFRESH_TOKEN)
 			return
 		}
 		accessToken := strings.Replace(authorizationHeader, "Bearer ", "", 1)
 		refreshToken := strings.Replace(refreshTokenHeader, "Bearer ", "", 1)
 		tokenId, refreshErr := t.business.Refresh(accessToken, refreshToken)
 		if refreshErr != nil {
-			t.util.DoErrorResponse(ctx, refreshErr)
+			t.httpUtil.DoError(ctx, refreshErr)
 			return
 		}
-		t.util.DoSuccessResponse(ctx, constant.RefreshToken, tokenId)
+		t.httpUtil.DoSuccess(ctx, constant.RefreshToken, tokenId)
 	}
 }

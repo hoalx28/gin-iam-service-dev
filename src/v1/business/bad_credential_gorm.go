@@ -1,36 +1,37 @@
 package business
 
 import (
+	"iam/src/v1/abstraction"
 	"iam/src/v1/config"
+	"iam/src/v1/domain"
 	"iam/src/v1/exception"
-	"iam/src/v1/model"
 	"iam/src/v1/storage"
 )
 
-type gormBadCredentialBusiness struct {
-	storage storage.BadCredentialStorage
+type gormBadCredentialB struct {
+	storage abstraction.BadCredentialS
 }
 
-func NewGormBadCredentialBusiness(appCtx config.AppContext) BadCredentialBusiness {
-	storage := storage.NewGormBadCredentialStorage(appCtx)
-	return gormBadCredentialBusiness{storage: storage}
+func NewGormBadCredentialB(appCtx config.AppContext) abstraction.BadCredentialB {
+	storage := storage.NewGormBadCredentialS(appCtx)
+	return gormBadCredentialB{storage: storage}
 }
 
-func (b gormBadCredentialBusiness) SaveBusiness(creation *model.BadCredentialCreation) (*model.BadCredentialResponse, exception.ServiceException) {
+func (b gormBadCredentialB) SaveB(creation *domain.BadCredentialCreation) (*domain.BadCredentialResponse, exception.ServiceException) {
 	model := creation.AsModel()
-	saved, saveErr := b.storage.Save(model)
+	saved, saveErr := b.storage.Save(&model)
 	if saveErr != nil {
 		return nil, saveErr
 	}
 	response := saved.AsResponse()
-	return response, nil
+	return &response, nil
 }
 
-func (b gormBadCredentialBusiness) FindByAccessTokenIdBusiness(accessTokenId string) (*model.BadCredentialResponse, exception.ServiceException) {
+func (b gormBadCredentialB) FindByAccessTokenIdB(accessTokenId string) (*domain.BadCredentialResponse, exception.ServiceException) {
 	model, queriedErr := b.storage.FindByAccessTokenId(accessTokenId)
 	if queriedErr != nil {
 		return nil, queriedErr
 	}
 	response := model.AsResponse()
-	return response, nil
+	return &response, nil
 }

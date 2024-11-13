@@ -5,14 +5,14 @@ import (
 	"iam/src/v1/transport"
 )
 
-type deviceRoute struct{}
+type deviceR struct{}
 
-func NewDeviceRoute() *deviceRoute {
-	return &deviceRoute{}
+func NewDeviceR() deviceR {
+	return deviceR{}
 }
 
-func (r deviceRoute) Config(appCtx config.AppContext) {
-	transport := transport.NewDeviceTransport(appCtx)
+func (r deviceR) Config(appCtx config.AppContext) {
+	transport := transport.NewDeviceT(appCtx)
 	engine := appCtx.GetGinEngine()
 	v1 := engine.Group("/api/v1")
 	{

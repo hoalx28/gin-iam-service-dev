@@ -2,12 +2,15 @@ package token
 
 import (
 	"errors"
+	"iam/src/v1/abstraction"
 	"iam/src/v1/config"
 	"iam/src/v1/constant"
+	"iam/src/v1/domain"
+	"iam/src/v1/domain/dto"
 	"iam/src/v1/exception"
-	"iam/src/v1/model"
 	"iam/src/v1/storage"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -15,37 +18,28 @@ import (
 	"github.com/samber/lo"
 )
 
-type payload struct {
-	UserId  uint   `json:"userId,omitempty"`
-	ReferId string `json:"referId,omitempty"`
-	Scope   string `json:"scope,omitempty"`
-}
-
-type AuthClaims struct {
-	Payload payload `json:"payload"`
-	jwt.RegisteredClaims
-}
-
-func NewAuthClaims(payload payload) AuthClaims {
-	return AuthClaims{Payload: payload}
-}
-
 type jwtAuthProvider struct {
-	badCredentialStorage storage.BadCredentialStorage
+	badCredentialS abstraction.BadCredentialS
+	Token          dto.Token
 }
 
-func NewJWTAuthProvider(appCtx config.AppContext) TokenAuthProvider[AuthClaims, model.UserResponse] {
-	badCredentialStorage := storage.NewGormBadCredentialStorage(appCtx)
-	return jwtAuthProvider{badCredentialStorage: badCredentialStorage}
+func NewJWTAuthProvider(appCtx config.AppContext) abstraction.JwtAuthProvider[dto.AuthClaims, domain.UserResponse] {
+	badCredentialS := storage.NewGormBadCredentialS(appCtx)
+	accessTokenSecret := os.Getenv("ACCESS_TOKEN_SECRET")
+	accessTokenTimeToLive, _ := strconv.Atoi(os.Getenv("ACCESS_TOKEN_TIME_TO_LIVE"))
+	refreshTokenSecret := os.Getenv("REFRESH_TOKEN_SECRET")
+	refreshTokenTimeToLive, _ := strconv.Atoi(os.Getenv("ACCESS_TOKEN_TIME_TO_LIVE"))
+	token := dto.Token{AccessTokenSecret: accessTokenSecret, AccessTokenTimeToLive: accessTokenTimeToLive, RefreshTokenSecret: refreshTokenSecret, RefreshTokenTimeToLive: refreshTokenTimeToLive}
+	return jwtAuthProvider{badCredentialS: badCredentialS, Token: token}
 }
 
-func (p jwtAuthProvider) BuildScope(user model.UserResponse) string {
+func (p jwtAuthProvider) BuildScope(user domain.UserResponse) string {
 	var scope = []string{}
 	if len(user.Roles) > 0 {
-		lo.ForEach(user.Roles, func(r model.RoleResponse, i int) {
+		lo.ForEach(user.Roles, func(r domain.RoleResponse, i int) {
 			scope = append(scope, "ROLE_"+r.Name)
 			if len(r.Privileges) > 0 {
-				lo.ForEach(r.Privileges, func(p model.PrivilegeResponse, i int) {
+				lo.ForEach(r.Privileges, func(p domain.PrivilegeResponse, i int) {
 					scope = append(scope, p.Name)
 				})
 			}
@@ -54,9 +48,9 @@ func (p jwtAuthProvider) BuildScope(user model.UserResponse) string {
 	return strings.Join(scope, " ")
 }
 
-func (p jwtAuthProvider) Sign(user model.UserResponse, expiredTime int, secretKey string, id string, referId string) (*string, exception.ServiceException) {
-	t := jwt.NewWithClaims(jwt.SigningMethodHS256, &AuthClaims{
-		Payload: payload{UserId: user.ID, Scope: p.BuildScope(user), ReferId: referId},
+func (p jwtAuthProvider) Sign(user domain.UserResponse, expiredTime int, secretKey string, id string, referId string) (*string, exception.ServiceException) {
+	t := jwt.NewWithClaims(jwt.SigningMethodHS256, &dto.AuthClaims{
+		Payload: dto.Payload{UserId: user.ID, Scope: p.BuildScope(user), ReferId: referId},
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   user.Username,
 			ID:        id,
@@ -71,28 +65,27 @@ func (p jwtAuthProvider) Sign(user model.UserResponse, expiredTime int, secretKe
 	return &token, nil
 }
 
-func (p jwtAuthProvider) Verify(token string, secretKey string) (*AuthClaims, exception.ServiceException) {
-	t, parseErr := jwt.ParseWithClaims(token, &AuthClaims{}, func(t *jwt.Token) (interface{}, error) { return []byte(secretKey), nil })
+func (p jwtAuthProvider) Verify(token string, secretKey string) (*dto.AuthClaims, exception.ServiceException) {
+	t, parseErr := jwt.ParseWithClaims(token, &dto.AuthClaims{}, func(t *jwt.Token) (interface{}, error) { return []byte(secretKey), nil })
 	if parseErr != nil {
 		if errors.Is(parseErr, jwt.ErrTokenExpired) {
 			return nil, exception.NewServiceException(parseErr, constant.JwtTokenExpiredF)
 		}
 		return nil, exception.NewServiceException(parseErr, constant.ParseJwtTokenF)
 	}
-	if claims, ok := t.Claims.(*AuthClaims); ok {
+	if claims, ok := t.Claims.(*dto.AuthClaims); ok {
 		return claims, nil
 	}
 	return nil, exception.NewServiceException(nil, constant.IllLegalJwtTokenF)
 }
 
-func (p jwtAuthProvider) EnsureNotBadCredential(token string) (*AuthClaims, exception.ServiceException) {
-	accessTokenSecret := os.Getenv("ACCESS_TOKEN_SECRET")
-	claims, verifiedErr := p.Verify(token, accessTokenSecret)
+func (p jwtAuthProvider) EnsureNotBadCredential(token string) (*dto.AuthClaims, exception.ServiceException) {
+	claims, verifiedErr := p.Verify(token, p.Token.AccessTokenSecret)
 	if verifiedErr != nil {
 		return nil, verifiedErr
 	}
 	accessTokenID := claims.ID
-	badCredential, queriedErr := p.badCredentialStorage.FindByAccessTokenId(accessTokenID)
+	badCredential, queriedErr := p.badCredentialS.FindByAccessTokenId(accessTokenID)
 	if badCredential != nil {
 		return nil, exception.NewServiceException(nil, constant.TokenBlockedF)
 	}
@@ -101,4 +94,8 @@ func (p jwtAuthProvider) EnsureNotBadCredential(token string) (*AuthClaims, exce
 		return claims, nil
 	}
 	return nil, exception.NewServiceException(queriedErr, constant.EnsureTokenNotBadCredentialF)
+}
+
+func (p jwtAuthProvider) GetConstant() dto.Token {
+	return p.Token
 }

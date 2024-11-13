@@ -1,4 +1,4 @@
-package model
+package domain
 
 import "gorm.io/gorm"
 
@@ -34,19 +34,19 @@ func (StatusUpdate) TableName() string    { return Status{}.TableName() }
 func (StatusResponse) TableName() string  { return Status{}.TableName() }
 func (StatusResponses) TableName() string { return Status{}.TableName() }
 
-func (p StatusCreation) AsModel() *Status {
-	return &Status{Model: gorm.Model{}, Content: *p.Content, UserID: *p.UserId}
+func (p StatusCreation) AsModel() Status {
+	return Status{Model: gorm.Model{}, Content: *p.Content, UserID: *p.UserId}
 }
 
-func (p Status) AsResponse() *StatusResponse {
-	return &StatusResponse{Model: p.Model, Content: p.Content, User: *p.User.AsResponse()}
+func (p Status) AsResponse() StatusResponse {
+	return StatusResponse{Model: p.Model, Content: p.Content, User: p.User.AsResponse()}
 }
 
 func (p Statuses) AsCollectionResponse() StatusResponses {
 	result := StatusResponses{}
 	for _, model := range p {
 		response := model.AsResponse()
-		result = append(result, *response)
+		result = append(result, response)
 	}
 	return result
 }

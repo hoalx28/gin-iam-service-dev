@@ -1,38 +1,39 @@
 package storage
 
 import (
+	"iam/src/v1/abstraction"
 	"iam/src/v1/config"
 	"iam/src/v1/constant"
+	"iam/src/v1/domain"
 	"iam/src/v1/exception"
-	"iam/src/v1/model"
 
 	"gorm.io/gorm"
 )
 
-type gormBadCredentialStorage struct {
+type gormBadCredentialS struct {
 	db *gorm.DB
 }
 
-func NewGormBadCredentialStorage(appCtx config.AppContext) BadCredentialStorage {
-	return gormBadCredentialStorage{db: appCtx.GetGormDB()}
+func NewGormBadCredentialS(appCtx config.AppContext) abstraction.BadCredentialS {
+	return gormBadCredentialS{db: appCtx.GetGormDB()}
 }
 
-func (s gormBadCredentialStorage) Save(model *model.BadCredential) (*model.BadCredential, exception.ServiceException) {
-	err := s.db.Create(model).Error
+func (s gormBadCredentialS) Save(domain *domain.BadCredential) (*domain.BadCredential, exception.ServiceException) {
+	err := s.db.Create(domain).Error
 	if err != nil {
 		return nil, exception.NewServiceException(err, constant.SaveF)
 	}
-	return model, nil
+	return domain, nil
 }
 
-func (s gormBadCredentialStorage) FindByAccessTokenId(accessToken string) (*model.BadCredential, exception.ServiceException) {
-	model := &model.BadCredential{}
-	err := s.db.Unscoped().Where("access_token_id = ?", accessToken).First(model).Error
+func (s gormBadCredentialS) FindByAccessTokenId(accessToken string) (*domain.BadCredential, exception.ServiceException) {
+	domain := &domain.BadCredential{}
+	err := s.db.Unscoped().Where("access_token_id = ?", accessToken).First(domain).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, exception.NewServiceException(err, constant.FindByIdNoContentF)
 		}
 		return nil, exception.NewServiceException(err, constant.FindByIdF)
 	}
-	return model, nil
+	return domain, nil
 }
