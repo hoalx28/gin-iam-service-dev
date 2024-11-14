@@ -59,6 +59,7 @@ var (
 	RecallJwtTokenF              = newFailed(227, "refresh token may not complete: token not be recalled.", http.StatusUnauthorized)
 	RefreshTokenF                = newFailed(228, "can not refresh token: try again later.", http.StatusInternalServerError)
 
-	UnauthorizedF = newFailed(229, "ill legal token: token has been edited, expired or not publish by us.", http.StatusUnauthorized)
-	ForbiddenF    = newFailed(230, "forbidden: do not has right authority, do not f*ck with cat.", http.StatusForbidden)
+	MissingAuthorizationHeaderF = newFailed(229, "unauthorized: missing authorization header in header list.", http.StatusUnauthorized)
+	UnauthorizedF               = newFailed(230, "ill legal token: token has been edited, expired or not publish by us.", http.StatusUnauthorized)
+	ForbiddenF                  = newFailed(231, "forbidden: do not has right authority, do not f*ck with cat.", http.StatusForbidden)
 )

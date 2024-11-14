@@ -24,6 +24,7 @@ type HttpUtil interface {
 	DoSuccess(ctx *gin.Context, c constant.Success, payload interface{})
 	DoSuccessPaging(ctx *gin.Context, c constant.Success, payload interface{}, page dto.Paging)
 	DoError(ctx *gin.Context, e exception.ServiceException)
+	DoErrorWith(ctx *gin.Context, failed constant.Failed)
 	DoErrorParseBody(ctx *gin.Context, e error)
 	DoErrorParseQuery(ctx *gin.Context, e error)
 	DoErrorGetPath(ctx *gin.Context, name string)
@@ -47,6 +48,11 @@ func (u httpUtil) DoSuccessPaging(ctx *gin.Context, c constant.Success, payload 
 
 func (u httpUtil) DoError(ctx *gin.Context, e exception.ServiceException) {
 	failed := e.GetFailed()
+	response := response.NewResponse[interface{}](int(time.Now().Unix()), failed.Code, failed.StatusCode, failed.Message, nil)
+	ctx.JSON(failed.StatusCode, response)
+}
+
+func (u httpUtil) DoErrorWith(ctx *gin.Context, failed constant.Failed) {
 	response := response.NewResponse[interface{}](int(time.Now().Unix()), failed.Code, failed.StatusCode, failed.Message, nil)
 	ctx.JSON(failed.StatusCode, response)
 }

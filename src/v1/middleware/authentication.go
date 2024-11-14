@@ -3,6 +3,7 @@ package middleware
 import (
 	"iam/src/v1/abstraction"
 	"iam/src/v1/config"
+	"iam/src/v1/constant"
 	"iam/src/v1/domain"
 	"iam/src/v1/domain/dto"
 	"iam/src/v1/token"
@@ -27,7 +28,7 @@ func (m authenticatedM) Authenticated() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		header := ctx.GetHeader(util.AUTHORIZATION)
 		if lo.IsEmpty(header) {
-			m.httpUtil.DoErrorGetHeader(ctx, util.AUTHORIZATION)
+			m.httpUtil.DoErrorWith(ctx, constant.MissingAuthorizationHeaderF)
 			return
 		}
 		accessToken := strings.Replace(header, "Bearer ", "", 1)
